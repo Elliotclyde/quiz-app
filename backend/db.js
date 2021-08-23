@@ -13,10 +13,11 @@ const db = new sqlite3.Database("./db/quiz.db");
 //   });
 // });
 
+let quizIdHead = 0;
+let questionIdHead = 0;
+let answerIdHead = 0;
+
 export const dataBase = {
-  quizIdHead: 0,
-  questionIdHead: 0,
-  answerIdHead: 0,
   // create tables
   initialise: function () {
     db.serialize(function () {
@@ -30,12 +31,12 @@ export const dataBase = {
     );
   },
   newQuiz: function (title) {
-    dataBase.quizIdHead = dataBase.quizIdHead + 1;
     return new Promise((resolve, reject) => {
       const sqlCreate = "INSERT INTO quiz VALUES(?,?)";
       const sqlGet = "SELECT * FROM quiz WHERE quizid  = ?";
-      db.run(sqlCreate, [dataBase.quizIdHead, title], (req, res) => {
-        db.get(sqlGet, [dataBase.quizIdHead], (req, res) => {
+      db.run(sqlCreate, [quizIdHead, title], (req, res) => {
+        db.get(sqlGet, [quizIdHead], (req, res) => {
+          quizIdHead = quizIdHead + 1;
           resolve(res);
         });
       });
@@ -43,13 +44,13 @@ export const dataBase = {
   },
 
   newQuestion: function (body, quizId) {
-    dataBase.questionIdHead = dataBase.questionIdHead + 1;
     return new Promise((resolve, reject) => {
       const sqlCreate = "INSERT INTO question VALUES(?,?,?)";
       const sqlGet = "SELECT * FROM question WHERE questionid  = ?";
 
-      db.run(sqlCreate, [dataBase.questionIdHead, body, quizId], (req, res) => {
-        db.get(sqlGet, [dataBase.questionIdHead], (req, res) => {
+      db.run(sqlCreate, [questionIdHead, body, quizId], (req, res) => {
+        db.get(sqlGet, [questionIdHead], (req, res) => {
+          questionIdHead = questionIdHead + 1;
           resolve(res);
         });
       });
@@ -60,12 +61,13 @@ export const dataBase = {
     return new Promise((resolve, reject) => {
       const sqlCreate = "INSERT INTO answer VALUES(?,?,?,?)";
       const sqlGet = "SELECT * FROM answer WHERE answerid = ?";
-      dataBase.answerIdHead = dataBase.answerIdHead + 1;
+
       db.run(
         sqlCreate,
-        [dataBase.answerIdHead, body, isCorrect, questionId],
+        [answerIdHead, body, isCorrect, questionId],
         (req, res) => {
-          db.get(sqlGet, [dataBase.answerIdHead], (req, res) => {
+          db.get(sqlGet, [answerIdHead], (req, res) => {
+            answerIdHead = answerIdHead + 1;
             resolve(res);
           });
         }

@@ -21,7 +21,13 @@ export function CreatePage() {
 
   function onSubmit(event) {
     event.preventDefault();
+    console.log(JSON.stringify(data));
     fetch(import.meta.env.VITE_BACKEND_URL + "/create-quiz/", {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      mode: "cors",
       body: JSON.stringify(data),
     });
   }
@@ -68,7 +74,8 @@ export function CreatePage() {
     });
   }
 
-  function onAddQuestion() {
+  function onAddQuestion(event) {
+    event.preventDefault();
     setData((currentData) => {
       return {
         ...currentData,
@@ -86,7 +93,8 @@ export function CreatePage() {
     });
   }
 
-  function onAddAnswer(qIndex) {
+  function onAddAnswer(event, qIndex) {
+    event.preventDefault();
     setData((currentData) => {
       return {
         ...currentData,
@@ -112,7 +120,7 @@ export function CreatePage() {
               ...q,
               answers: q.answers.map((a, index) => {
                 return index === aIndex
-                  ? { ...a, isCorrect: value }
+                  ? { ...a, isCorrect: value == "on" ? true : false }
                   : { ...a, isCorrect: false };
               }),
             };
@@ -189,8 +197,8 @@ export function CreatePage() {
                 })}
                 <button
                   disabled={q.answers.length >= 4}
-                  onClick={() => {
-                    onAddAnswer(qIndex);
+                  onClick={(e) => {
+                    onAddAnswer(e, qIndex);
                   }}
                 >
                   Add answer
@@ -198,8 +206,9 @@ export function CreatePage() {
               </div>
             );
           })}
+          <button onClick={onAddQuestion}>Add Question</button>
+          <input type="submit" value="Submit" />
         </form>
-        <button onClick={onAddQuestion}>Add Question</button>
       </div>
     </>
   );
