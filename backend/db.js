@@ -1,5 +1,5 @@
 import sqlite3 from "sqlite3";
-const db = new sqlite3.Database(":memory:");
+const db = new sqlite3.Database("./db/quiz.db");
 
 // -table of quizzes
 
@@ -30,94 +30,110 @@ export const dataBase = {
     );
   },
   newQuiz: function (title) {
-    db.serialize(function () {
-      let statement = db.prepare("INSERT INTO quiz VALUES(?,?)");
-      statement.run(this.quizIdHead, title);
-      statement.finalize();
+    dataBase.quizIdHead = dataBase.quizIdHead + 1;
+    return new Promise((resolve, reject) => {
+      const sqlCreate = "INSERT INTO quiz VALUES(?,?)";
+      const sqlGet = "SELECT * FROM quiz WHERE quizid  = ?";
+      db.run(sqlCreate, [dataBase.quizIdHead, title], (req, res) => {
+        db.get(sqlGet, [dataBase.quizIdHead], (req, res) => {
+          resolve(res);
+        });
+      });
     });
-    this.quizIdHead = this.quizIdHead + 1;
-    return { quizId: this.quizIdHead, title: title };
   },
 
   newQuestion: function (body, quizId) {
-    db.serialize(function () {
-      let statement = db.prepare("INSERT INTO question VALUES(?,?,?)");
-      statement.run(this.questionIdHead, body, quizId);
-      statement.finalize();
+    dataBase.questionIdHead = dataBase.questionIdHead + 1;
+    return new Promise((resolve, reject) => {
+      const sqlCreate = "INSERT INTO question VALUES(?,?,?)";
+      const sqlGet = "SELECT * FROM question WHERE questionid  = ?";
+
+      db.run(sqlCreate, [dataBase.questionIdHead, body, quizId], (req, res) => {
+        db.get(sqlGet, [dataBase.questionIdHead], (req, res) => {
+          resolve(res);
+        });
+      });
     });
-    this.questionIdHead = this.questionIdHead + 1;
-    return { questionId: this.questionIdHead, body: body, quizId: quizId };
   },
 
   newAnswer: function (body, isCorrect, questionId) {
-    db.serialize(function () {
-      let statement = db.prepare("INSERT INTO answer VALUES(?,?,?,?)");
-      statement.run(this.answerIdHead, body, isCorrect, questionId);
-      statement.finalize();
-    });
-    this.answerIdHead = this.answerIdHead + 1;
-
-    return {
-      answerIdHead: this.answerIdHead,
-      isCorrect: isCorrect,
-      body: body,
-      questionId: questionId,
-    };
-  },
-
-  getQuiz: function (id, callback) {
-    db.get(`SELECT * FROM quiz WHERE quizid  = ?`, [id], (err, row) => {
-      if (err) {
-        return console.error(err.messsage);
-      }
-      callback(row);
+    return new Promise((resolve, reject) => {
+      const sqlCreate = "INSERT INTO answer VALUES(?,?,?,?)";
+      const sqlGet = "SELECT * FROM answer WHERE answerid = ?";
+      dataBase.answerIdHead = dataBase.answerIdHead + 1;
+      db.run(
+        sqlCreate,
+        [dataBase.answerIdHead, body, isCorrect, questionId],
+        (req, res) => {
+          db.get(sqlGet, [dataBase.answerIdHead], (req, res) => {
+            resolve(res);
+          });
+        }
+      );
     });
   },
 
-  getQuestion: function (id, callback) {
-    db.get(`SELECT * FROM question WHERE questionid  = ?`, [id], (err, row) => {
-      if (err) {
-        return console.error(err.messsage);
-      }
-      callback(row);
-    });
-  },
-  getAnswer: function (id, callback) {
-    db.get(`SELECT * FROM answer WHERE answerid  = ?`, [id], (err, row) => {
-      if (err) {
-        return console.error(err.messsage);
-      }
-      callback(row);
-    });
-  },
-  getQuizQuestions: function (id, callback) {
-    let data = [];
-    db.each(
-      `SELECT * FROM question WHERE questionquiz = ?`,
-      [id],
-      (err, row) => {
+  getQuiz: function (id) {
+    return new Promise((resolve, reject) => {
+      db.get(`SELECT * FROM quiz WHERE quizid  = ?`, [id], (err, row) => {
         if (err) {
           return console.error(err.messsage);
         }
-        data.push(row);
-      },
-      (err, row) => callback(data)
-    );
+        resolve(row);
+      });
+    });
   },
-  getQuestionAnswers: function (id, callback) {
-    let data = [];
-    db.each(
-      `SELECT * FROM answer WHERE answerquestion = ?`,
-      [id],
-      (err, row) => {
+
+  getQuestion: function (id) {
+    return new Promise((resolve, reject) => {
+      db.get(
+        `SELECT * FROM question WHERE questionid  = ?`,
+        [id],
+        (err, row) => {
+          if (err) {
+            return console.error(err.messsage);
+          }
+          resolve(row);
+        }
+      );
+    });
+  },
+  getAnswer: function (id) {
+    return new Promise((resolve, reject) => {
+      db.get(`SELECT * FROM answer WHERE answerid  = ?`, [id], (err, row) => {
         if (err) {
           return console.error(err.messsage);
         }
-        data.push(row);
-      },
-      (err, row) => {
-        callback(data);
-      }
-    );
+        resolve(row);
+      });
+    });
+  },
+  getQuizQuestions: function (id) {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT * FROM question WHERE questionquiz = ?`,
+        [id],
+        (err, rows) => {
+          if (err) {
+            return console.error(err.messsage);
+          }
+          resolve(rows);
+        }
+      );
+    });
+  },
+  getQuestionAnswers: function (id) {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT * FROM answer WHERE answerquestion = ?`,
+        [id],
+        (err, rows) => {
+          if (err) {
+            return console.error(err.messsage);
+          }
+          resolve(rows);
+        }
+      );
+    });
   },
 };

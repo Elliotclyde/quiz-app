@@ -1,19 +1,18 @@
-import { Logo } from "./logo";
+import { CreatePage } from "./components/CreatePage";
+import { QuizPage } from "./components/QuizPage";
+import { HomePage } from "./components/HomePage";
+import { EditPage } from "./components/EditPage";
 import { useState } from "preact/hooks";
 import { useSSE } from "./hooks/useSSE";
+import Router from "preact-router";
 
 export function App(props) {
-  const [message, setMessage] = useState("Loading . . . ");
-  useSSE((response) => {
-    setMessage(response);
-  });
   return (
-    <>
-      <Logo />
-      <p>Hello Vite + Preact!</p>
-      <p>
-        <h1>{message}</h1>
-      </p>
-    </>
+    <Router>
+      <HomePage path="/" />
+      <CreatePage path="/create" />
+      <QuizPage path="/quiz/:quizid" />
+      <EditPage path="/edit/:quizid?" />
+    </Router>
   );
 }

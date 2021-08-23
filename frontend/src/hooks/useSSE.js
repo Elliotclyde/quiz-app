@@ -15,3 +15,9 @@ export const useSSE = (onEvent) => {
     });
   }, []);
 };
+
+//usage
+
+// useSSE((response) => {
+//   setMessage(response);
+// });
