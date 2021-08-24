@@ -1,3 +1,4 @@
+import { useFetch } from "../hooks/useFetch";
 import { NavBar } from "./NavBar";
 
 // Needs to
@@ -5,6 +6,7 @@ import { NavBar } from "./NavBar";
 // Sign up for
 
 export function EditPage({ quizid }) {
+  const data = useFetch(import.meta.env.VITE_BACKEND_URL + "/edit/" + quizid);
   return (
     <>
       <NavBar />

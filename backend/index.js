@@ -1,5 +1,6 @@
 import express, { response } from "express";
-import { create } from "./Controllers/create.js";
+import { createQuiz } from "./Controllers/createquiz.js";
+import { getQuiz } from "./Controllers/getquiz.js";
 import cors from "cors";
 
 const app = express();
@@ -14,7 +15,9 @@ app.get("/", (req, res) => {
   res.json({ Hello: "world" });
 });
 
-app.post("/create-quiz/", create);
+app.post("/create-quiz/", createQuiz);
+
+app.get("/get-quiz/:quizId", getQuiz);
 
 const eventStreamCorsOptions = {
   origin: true,

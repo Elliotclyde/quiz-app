@@ -138,4 +138,40 @@ export const dataBase = {
       );
     });
   },
+  updateQuiz: function (id, props) {
+    const { title } = props;
+    const sqlUpdate = "UPDATE quiz SET title = ? WHERE quizid = ?";
+    const sqlGet = "SELECT * FROM quiz WHERE quizid = ?";
+    return new Promise((resolve, reject) => {
+      db.run(sqlUpdate, [title, id], (req, res) => {
+        db.get(sqlGet, [id], (req, res) => {
+          resolve(res);
+        });
+      });
+    });
+  },
+  updateQuestion: function (id, props) {
+    const { body } = props;
+    const sqlUpdate = "UPDATE question SET body = ? WHERE questionid = ?";
+    const sqlGet = "SELECT * FROM question WHERE questionid = ?";
+    return new Promise((resolve, reject) => {
+      db.run(sqlUpdate, [body, id], (req, res) => {
+        db.get(sqlGet, [id], (req, res) => {
+          resolve(res);
+        });
+      });
+    });
+  },
+  updateAnswer: function (id, props) {
+    const { body, isCorrect } = props;
+    const sqlUpdate = "UPDATE question SET body = ? WHERE questionid = ?";
+    const sqlGet = "SELECT * FROM question WHERE questionid = ?";
+    return new Promise((resolve, reject) => {
+      db.run(sqlUpdate, [body, id], (req, res) => {
+        db.get(sqlGet, [id], (req, res) => {
+          resolve(res);
+        });
+      });
+    });
+  },
 };

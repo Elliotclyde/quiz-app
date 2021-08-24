@@ -3,8 +3,6 @@ import { NavBar } from "./NavBar";
 
 // Bind a bunch of objects to a form to generate a quiz then send it to the server
 
-// Needs to be refactored to be controlled
-
 export function CreatePage() {
   const [data, setData] = useState({
     title: "",
@@ -18,6 +16,8 @@ export function CreatePage() {
       },
     ],
   });
+
+  // After we receive a successful response, show a link to send to friends to invite them to do a quiz
 
   function onSubmit(event) {
     event.preventDefault();
@@ -92,6 +92,16 @@ export function CreatePage() {
       };
     });
   }
+  function onRemoveQuestion(event, qIndex) {
+    setData((currentData) => {
+      return {
+        ...currentData,
+        questions: [
+          ...currentData.questions.filter((question, index) => index != qIndex),
+        ],
+      };
+    });
+  }
 
   function onAddAnswer(event, qIndex) {
     event.preventDefault();
@@ -106,6 +116,29 @@ export function CreatePage() {
             };
           } else return q;
         }),
+      };
+    });
+  }
+
+  function onRemoveAnswer(event, qIndex, aIndex) {
+    event.preventDefault();
+    setData((currentData) => {
+      return {
+        ...currentData,
+        questions: [
+          ...currentData.questions.map((question, index) => {
+            if (index != qIndex) {
+              return question;
+            } else {
+              return {
+                ...question,
+                answers: question.answers.filter(
+                  (answer, index) => index != aIndex
+                ),
+              };
+            }
+          }),
+        ],
       };
     });
   }
@@ -192,6 +225,14 @@ export function CreatePage() {
                           );
                         }}
                       />
+                      <button
+                        disabled={q.answers.length <= 2}
+                        onClick={(event) => {
+                          onRemoveAnswer(event, qIndex, aIndex);
+                        }}
+                      >
+                        Remove Answer
+                      </button>
                     </div>
                   );
                 })}
@@ -202,6 +243,14 @@ export function CreatePage() {
                   }}
                 >
                   Add answer
+                </button>
+                <button
+                  disabled={data.questions.length <= 1}
+                  onClick={(event) => {
+                    onRemoveQuestion(event, qIndex);
+                  }}
+                >
+                  Remove Question
                 </button>
               </div>
             );

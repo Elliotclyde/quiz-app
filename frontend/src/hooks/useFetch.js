@@ -1,10 +1,10 @@
 import { useEffect, useState } from "preact/hooks";
 
-export const useFetch = () => {
+export const useFetch = (url) => {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch(import.meta.env.VITE_BACKEND_URL)
+    fetch(url)
       .then(function (response) {
         if (!response.ok) {
           throw Error(response.statusText);
@@ -21,6 +21,6 @@ export const useFetch = () => {
         console.log(error);
         console.log("Looks like there was a problem: \n", error);
       });
-  }, []);
+  }, [url]);
   return data;
 };

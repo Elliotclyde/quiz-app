@@ -1,8 +1,7 @@
-import { dataBase } from "../db.js";
+import { dataBase } from "../Database/db.js";
 
-export function create(req, response) {
+export function createQuiz(req, response) {
   const data = req.body;
-  console.log(data);
   // Do checks and validate data here
   // Send back error if data is invalid
 
@@ -13,6 +12,8 @@ export function create(req, response) {
     .newQuiz(data.title)
     .then((res, rej) => {
       databaseQuiz = res;
+
+      console.log(res);
       return res;
     })
     .then((res, rej) => {
@@ -31,7 +32,6 @@ export function create(req, response) {
       return Promise.all(answerArray);
     })
     .then((res, rej) => {
-      console.log(res);
       databaseQuestions.forEach((question) => {
         question.answers = [];
         res.forEach((arr) => {
