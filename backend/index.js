@@ -1,7 +1,10 @@
 import express, { response } from "express";
+import cors from "cors";
+
 import { createQuiz } from "./Controllers/createquiz.js";
 import { getQuiz } from "./Controllers/getquiz.js";
-import cors from "cors";
+import { updateQuiz } from "./Controllers/updatequiz.js";
+import { deleteQuiz } from "./Controllers/deleteQuiz.js";
 
 const app = express();
 app.use(express.json());
@@ -16,6 +19,10 @@ app.get("/", (req, res) => {
 });
 
 app.post("/create-quiz/", createQuiz);
+
+app.post("/edit-quiz/:quizId", updateQuiz);
+
+app.post("/delete-quiz/:quizId", deleteQuiz);
 
 app.get("/get-quiz/:quizId", getQuiz);
 

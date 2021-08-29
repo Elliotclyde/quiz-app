@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node ./index.js",
+    "redb": "cd $INIT_CWD && del \"db/quiz.db\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

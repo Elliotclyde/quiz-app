@@ -17,7 +17,7 @@ export function createQuiz(req, response) {
       return res;
     })
     .then((res, rej) => {
-      return mapQuestions(data.questions, databaseQuiz.quizid);
+      return mapQuestions(data.questions, databaseQuiz.quizId);
     })
     .then(async (res, rej) => {
       databaseQuestions = res;
@@ -25,7 +25,7 @@ export function createQuiz(req, response) {
 
       for (const [index, question] of databaseQuestions.entries()) {
         answerArray.push(
-          await mapAnswers(data.questions[index].answers, question.questionid)
+          await mapAnswers(data.questions[index].answers, question.questionId)
         );
       }
 
@@ -36,7 +36,7 @@ export function createQuiz(req, response) {
         question.answers = [];
         res.forEach((arr) => {
           arr.forEach((answer) => {
-            if (answer.answerquestion === question.questionid) {
+            if (answer.answerQuestion === question.questionId) {
               question.answers.push(answer);
             }
           });

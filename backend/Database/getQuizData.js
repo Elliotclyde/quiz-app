@@ -1,4 +1,4 @@
-import { dataBase } from "../db.js";
+import { dataBase } from "./db.js";
 
 export async function getQuizData(quizId) {
   let databaseQuiz;
@@ -8,22 +8,20 @@ export async function getQuizData(quizId) {
     .getQuiz(quizId)
     .then((res, rej) => {
       databaseQuiz = res;
-      console.log(quizId);
       return res;
     })
     .then((res, rej) => {
-      return dataBase.getQuizQuestions(databaseQuiz.quizid);
+      return dataBase.getQuizQuestions(databaseQuiz.quizId);
     })
     .then((res, rej) => {
       databaseQuestions = res;
       let promises = [];
       databaseQuestions.forEach((question) => {
-        promises.push(dataBase.getQuestionAnswers(question.questionid));
+        promises.push(dataBase.getQuestionAnswers(question.questionId));
       });
       return Promise.all(promises);
     })
     .then((res, rej) => {
-      res.forEach((promise) => console.log(promise));
       databaseQuestions.forEach((question, index) => {
         question.answers = res[index];
       });

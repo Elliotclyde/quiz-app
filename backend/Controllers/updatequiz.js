@@ -1,4 +1,5 @@
 import { dataBase } from "../Database/db.js";
+import { getQuizData } from "../Database/getQuizData.js";
 
 export function updateQuiz(req, response) {
   // The quiz has to have an ID already so automatically update the title based on data received- no matter what
@@ -12,75 +13,130 @@ export function updateQuiz(req, response) {
   // Then any answers associated with a question ID which no longer exists
   // And delete these
 
-  const oldQuizData = await getQuizData(request.params.quizId);
-  const newQuizData = req.body;
+  let oldQuizData;
+  getQuizData(req.params.quizId)
+    .then((res, rej) => {
+      oldQuizData = res;
+      return res;
+    })
+    .then(() => {
+      const newQuizData = req.body;
 
-  // First update quiz Id if new
+      // First update quiz Id if new
 
-  dataBase.updateQuiz(request.params.quizId, { title: newQuizData.title });
+      dataBase.updateQuiz(req.params.quizId, { title: newQuizData.title });
 
-  // Next, create any new questions/answers
-  newQuizData.questions.forEach((newQuestion) => {
-    // if newQuestion.id is undefined, add to database
+      // Create the brand new questions
 
-    newQuestion.answers.forEach((oldAnswer) => {
-      // if newQuestion.id is undefined, add to database
+      const newQuestions = newQuizData.questions.filter(
+        (q) => q.questionId === undefined
+      );
+      newQuestions.reduce(async (previousPromise, nextQuestion) => {
+        await previousPromise;
+
+        const dbQuestion = await dataBase.newQuestion(
+          nextQuestion.body,
+          req.params.quizId
+        );
+
+        await nextQuestion.answers.reduce(
+          async (previousPromise, nextAnswer) => {
+            await previousPromise;
+            return dataBase.newAnswer(
+              nextAnswer.body,
+              nextAnswer.isCorrect,
+              dbQuestion.questionId
+            );
+          },
+          Promise.resolve()
+        );
+      }, Promise.resolve());
+
+      // Now that we've finished creating the new questions we update the old ones
+
+      const questionsToUpdate = newQuizData.questions.filter(
+        (q) => q.questionId !== undefined
+      );
+
+      questionsToUpdate.reduce(async (previousPromise, nextQuestion) => {
+        await previousPromise;
+
+        const dbQuestion = await dataBase.updateQuestion(
+          nextQuestion.questionId,
+          {
+            body: nextQuestion.body,
+          }
+        );
+
+        // First delete any old answers that are no longer included
+        // Important that this happens before adding new ones
+
+        const oldAnswers = await dataBase.getQuestionAnswers(
+          nextQuestion.questionId
+        );
+
+        const oldAnswersToDelete = oldAnswers.filter((oldAnswer) => {
+          return !nextQuestion.answers
+            .map((a) => a.answerId)
+            .includes(oldAnswer.answerId);
+        });
+
+        oldAnswersToDelete.reduce(async (previousPromise, nextAnswer) => {
+          await previousPromise;
+          return dataBase.deleteAnswer(nextAnswer.answerId);
+        }, Promise.resolve());
+
+        // Create the new answers
+
+        const newAnswers = nextQuestion.answers.filter(
+          (a) => a.answerId === undefined
+        );
+
+        await newAnswers.reduce(async (previousPromise, nextAnswer) => {
+          await previousPromise;
+          return dataBase.newAnswer(
+            nextAnswer.body,
+            nextAnswer.isCorrect,
+            nextQuestion.questionId
+          );
+        }, Promise.resolve());
+
+        // Update the existing answers
+
+        const answersToUpdate = nextQuestion.answers.filter(
+          (a) => a.answerId !== undefined
+        );
+
+        await answersToUpdate.reduce(async (previousPromise, nextAnswer) => {
+          await previousPromise;
+          return dataBase.updateAnswer(nextAnswer.answerId, {
+            body: nextAnswer.body,
+            isCorrect: nextAnswer.isCorrect,
+          });
+        }, Promise.resolve());
+      }, Promise.resolve());
+
+      const oldQuestionsToDelete = oldQuizData.questions.filter(
+        (oldQuestion) => {
+          return !newQuizData.questions
+            .map((q) => q.questionId)
+            .includes(oldQuestion.questionId);
+        }
+      );
+      oldQuestionsToDelete.map((e) => console.log(e));
+      oldQuestionsToDelete.reduce(async (previousPromise, nextQuestion) => {
+        await previousPromise;
+
+        const oldAnswersToDelete = await dataBase.getQuestionAnswers(
+          nextQuestion.questionId
+        );
+
+        oldAnswersToDelete.reduce(async (previousPromise, nextAnswer) => {
+          await previousPromise;
+          return dataBase.deleteAnswer(nextAnswer.answerId);
+        }, Promise.resolve());
+
+        return dataBase.deleteQuestion(nextQuestion.questionId);
+      }, Promise.resolve());
     });
-  });
-
-  // Next, update or, if needed, delete any old questions
-  oldQuizData.questions.forEach((oldQuestion) => {
-    // Check if there is a new question with the same id.
-    // If so, update the body with the new question's body
-    // If there is no new question with a matching id, delete the old question from the database
-
-    oldQuestion.answers.forEach((oldAnswer) => {});
-  });
 }
-
-// export function createQuiz(req, response) {
-//     const data = req.body;
-//     // Do checks and validate data here
-//     // Send back error if data is invalid
-
-//     let databaseQuiz;
-//     let databaseQuestions;
-//     // Add to database
-//     dataBase
-//       .newQuiz(data.title)
-//       .then((res, rej) => {
-//         databaseQuiz = res;
-
-//         console.log(res);
-//         return res;
-//       })
-//       .then((res, rej) => {
-//         return mapQuestions(data.questions, databaseQuiz.quizid);
-//       })
-//       .then(async (res, rej) => {
-//         databaseQuestions = res;
-//         let answerArray = [];
-
-//         for (const [index, question] of databaseQuestions.entries()) {
-//           answerArray.push(
-//             await mapAnswers(data.questions[index].answers, question.questionid)
-//           );
-//         }
-
-//         return Promise.all(answerArray);
-//       })
-//       .then((res, rej) => {
-//         databaseQuestions.forEach((question) => {
-//           question.answers = [];
-//           res.forEach((arr) => {
-//             arr.forEach((answer) => {
-//               if (answer.answerquestion === question.questionid) {
-//                 question.answers.push(answer);
-//               }
-//             });
-//           });
-//         });
-//         databaseQuiz.questions = databaseQuestions;
-//         response.json(databaseQuiz);
-//       });
-//   }

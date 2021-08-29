@@ -1,4 +1,4 @@
-import { dataBase } from "./db.js";
+import { dataBase } from "./Database/db.js";
 
 dataBase.initialise();
 
