@@ -1,10 +1,27 @@
 import express, { response } from "express";
 import cors from "cors";
 
-import { createQuiz } from "./Controllers/createquiz.js";
-import { getQuiz } from "./Controllers/getquiz.js";
-import { updateQuiz } from "./Controllers/updatequiz.js";
+import { createQuiz } from "./Controllers/createQuiz.js";
+import { getQuiz } from "./Controllers/getQuiz.js";
+import { updateQuiz } from "./Controllers/updateQuiz.js";
 import { deleteQuiz } from "./Controllers/deleteQuiz.js";
+
+import { createUser } from "./Controllers/createUser.js";
+import { getUserQuizes } from "./Controllers/getUserQuizes.js";
+
+//TODO:
+
+// The app should return a link after the creation or editing of a quiz has completed.
+// Need to have some sort of identity in local storage.
+// And to record the id of the person who created the quiz.
+
+// New database table - users
+// Stores id and nickname
+// quizes need to be owned by a user
+
+// When we create a quiz the front end needs to check if local storage has a user id and send it with the data
+// If not, the front end should send the data without a userID
+// Then the backend creates a userId, adds it to the database, and sends it back
 
 const app = express();
 app.use(express.json());
@@ -18,12 +35,12 @@ app.get("/", (req, res) => {
   res.json({ Hello: "world" });
 });
 
+app.post("/create-user/", createUser);
+app.get("/get-user-quizes/:userId", getUserQuizes);
+
 app.post("/create-quiz/", createQuiz);
-
 app.post("/edit-quiz/:quizId", updateQuiz);
-
 app.post("/delete-quiz/:quizId", deleteQuiz);
-
 app.get("/get-quiz/:quizId", getQuiz);
 
 const eventStreamCorsOptions = {

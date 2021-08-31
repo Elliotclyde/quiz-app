@@ -11,8 +11,8 @@ export function App(props) {
     <Router>
       <HomePage path="/" />
       <CreatePage path="/create" />
-      <QuizPage path="/quiz/:quizid" />
-      <EditPage path="/edit/:quizid?" />
+      <QuizPage path="/quiz/:quizId" />
+      <EditPage path="/edit/:quizId?" />
     </Router>
   );
 }

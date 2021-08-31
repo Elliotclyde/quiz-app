@@ -1,11 +1,15 @@
 import { NavBar } from "./NavBar";
 
-export function QuizPage({ quizid }) {
+// Needs to
+// Load the quiz data
+// Sign up for
+
+export function QuizPage({ quizId }) {
   return (
     <>
       <NavBar />
       <div>
-        <h1>Quiz {quizid}</h1>
+        <h1>Quiz {quizId}</h1>
         <p>Loading quiz . . . </p>
         <p>Waiting for other players. . . </p>
       </div>

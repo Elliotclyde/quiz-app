@@ -1,29 +1,46 @@
 import { useFetch } from "../hooks/useFetch";
 import { NavBar } from "./NavBar";
 import { useState, useEffect } from "preact/hooks";
+import { QuizEditList } from "./QuizEditList";
 
 // Needs to
 // Load the quiz data
 // Sign up for
 
-export function EditPage({ quizid }) {
-  const data = useFetch(
-    import.meta.env.VITE_BACKEND_URL + "/get-quiz/" + quizid
+export function EditPage({ quizId }) {
+  console.log(quizId);
+
+  const quizData = useFetch(
+    import.meta.env.VITE_BACKEND_URL + "/get-quiz/" + quizId,
+    quizId !== ""
+  );
+
+  const user = JSON.parse(window.localStorage.getItem("user"));
+
+  const userListdata = useFetch(
+    import.meta.env.VITE_BACKEND_URL + "/get-user-quizes/" + user.userId,
+    quizId === "" && user,
+    [quizId]
   );
 
   return (
     <>
       <NavBar />
       <div>
-        {quizid ? (
-          data != null ? (
-            <EditForm initialData={data} quizid={quizid} />
+        {quizId != "" ? (
+          quizData != null ? (
+            <EditForm initialData={quizData} quizId={quizId} />
           ) : (
             <p>Loading . . .</p>
           )
         ) : (
           <>
             <h1>Select quiz to edit</h1>
+            {userListdata != null ? (
+              <QuizEditList listData={userListdata} />
+            ) : (
+              <p>Loading . . .</p>
+            )}
           </>
         )}
       </div>
@@ -31,7 +48,7 @@ export function EditPage({ quizid }) {
   );
 }
 
-function EditForm({ initialData, quizid }) {
+function EditForm({ initialData, quizId }) {
   const [data, setData] = useState(initialData);
 
   useEffect(() => {
@@ -41,7 +58,7 @@ function EditForm({ initialData, quizid }) {
   function onSubmit(event) {
     event.preventDefault();
     console.log(JSON.stringify(data));
-    fetch(import.meta.env.VITE_BACKEND_URL + "/edit-quiz/" + quizid, {
+    fetch(import.meta.env.VITE_BACKEND_URL + "/edit-quiz/" + quizId, {
       headers: {
         "Content-Type": "application/json",
       },
@@ -183,7 +200,7 @@ function EditForm({ initialData, quizid }) {
   }
   // TODO: Add option to
   function onDeleteQuiz() {
-    fetch(import.meta.env.VITE_BACKEND_URL + "/delete-quiz/" + quizid, {
+    fetch(import.meta.env.VITE_BACKEND_URL + "/delete-quiz/" + quizId, {
       headers: {
         "Content-Type": "application/json",
       },

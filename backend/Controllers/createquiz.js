@@ -9,7 +9,7 @@ export function createQuiz(req, response) {
   let databaseQuestions;
   // Add to database
   dataBase
-    .newQuiz(data.title)
+    .newQuiz(data.title, data.user.userId)
     .then((res, rej) => {
       databaseQuiz = res;
 

@@ -18,13 +18,17 @@ function getdb() {
 let quizIdHead = 0;
 let questionIdHead = 0;
 let answerIdHead = 0;
+let userIdHead = 0;
 
 export const dataBase = {
   // create tables
   initialise: function () {
     let db = getdb();
     db.serialize(function () {
-      db.run("CREATE TABLE quiz (quizid INTEGER PRIMARY KEY, title TEXT)");
+      db.run("CREATE TABLE user (userid INTEGER PRIMARY KEY, name TEXT)");
+      db.run(
+        "CREATE TABLE quiz (quizid INTEGER PRIMARY KEY, title TEXT, quizuser INTEGER, FOREIGN KEY(quizuser) REFERENCES user(userid))"
+      );
     });
     db.run(
       "CREATE TABLE question (questionid INTEGER PRIMARY KEY, body TEXT, questionquiz INTEGER, FOREIGN KEY(questionquiz) REFERENCES quiz(quizid))"
@@ -32,14 +36,29 @@ export const dataBase = {
     db.run(
       "CREATE TABLE answer (answerid INTEGER PRIMARY KEY, body TEXT, iscorrect INTEGER, answerquestion INTEGER, FOREIGN KEY(answerquestion) REFERENCES question(questionid))"
     );
+
     db.close();
   },
-  newQuiz: function (title) {
+  newUser: function (name) {
     let db = getdb();
     return new Promise((resolve, reject) => {
-      const sqlCreate = "INSERT INTO quiz VALUES(?,?)";
+      const sqlCreate = "INSERT INTO user VALUES(?,?)";
+      const sqlGet = "SELECT * FROM user WHERE userid  = ?";
+      db.run(sqlCreate, [userIdHead, name], (req, res) => {
+        db.get(sqlGet, [userIdHead], (req, row) => {
+          userIdHead = userIdHead + 1;
+          db.close();
+          resolve(camelCaseifyRow(row));
+        });
+      });
+    });
+  },
+  newQuiz: function (title, userId) {
+    let db = getdb();
+    return new Promise((resolve, reject) => {
+      const sqlCreate = "INSERT INTO quiz VALUES(?,?,?)";
       const sqlGet = "SELECT * FROM quiz WHERE quizid  = ?";
-      db.run(sqlCreate, [quizIdHead, title], (req, res) => {
+      db.run(sqlCreate, [quizIdHead, title, userId], (req, res) => {
         db.get(sqlGet, [quizIdHead], (req, row) => {
           quizIdHead = quizIdHead + 1;
           db.close();
@@ -89,7 +108,18 @@ export const dataBase = {
       );
     });
   },
-
+  getUser: function (id) {
+    let db = getdb();
+    return new Promise((resolve, reject) => {
+      db.get(`SELECT * FROM user WHERE userid  = ?`, [id], (err, row) => {
+        if (err) {
+          return console.error(err.messsage);
+        }
+        db.close();
+        resolve(camelCaseifyRow(row));
+      });
+    });
+  },
   getQuiz: function (id) {
     let db = getdb();
     return new Promise((resolve, reject) => {
@@ -131,6 +161,18 @@ export const dataBase = {
       });
     });
   },
+  getUserQuizes: function (id) {
+    let db = getdb();
+    return new Promise((resolve, reject) => {
+      db.all(`SELECT * FROM quiz WHERE quizuser = ?`, [id], (err, rows) => {
+        if (err) {
+          return console.error(err.messsage);
+        }
+        db.close();
+        resolve(rows.map(camelCaseifyRow));
+      });
+    });
+  },
   getQuizQuestions: function (id) {
     let db = getdb();
     return new Promise((resolve, reject) => {
@@ -161,6 +203,23 @@ export const dataBase = {
           resolve(rows.map(camelCaseifyRow));
         }
       );
+    });
+  },
+  updateUser: function (id, props) {
+    let db = getdb();
+    const { name } = props;
+    const sqlUpdate = "UPDATE user SET name = ? WHERE userid = ?";
+    const sqlGet = "SELECT * FROM user WHERE userid = ?";
+    return new Promise((resolve, reject) => {
+      db.run(sqlUpdate, [name, id], (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        db.get(sqlGet, [id], (req, res) => {
+          db.close();
+          resolve(camelCaseifyRow(res));
+        });
+      });
     });
   },
   updateQuiz: function (id, props) {
@@ -211,6 +270,21 @@ export const dataBase = {
           }
           db.close();
           resolve(camelCaseifyRow(res));
+        });
+      });
+    });
+  },
+  deleteUser: function (id) {
+    let db = getdb();
+    const sqlGet = "SELECT * FROM user WHERE userid = ?";
+    const sqlDelete = "DELETE from user WHERE userid =?";
+    let user;
+    return new Promise((resolve, reject) => {
+      db.get(sqlGet, [id], (req, res) => {
+        user = res;
+        db.run(sqlDelete, [id], (req, res) => {
+          db.close();
+          resolve(camelCaseifyRow(user));
         });
       });
     });
@@ -272,6 +346,12 @@ function camelCaseifyRow(row) {
     switch (key) {
       case "quizid":
         result.quizId = row[key];
+        break;
+      case "userid":
+        result.userId = row[key];
+        break;
+      case "quizuser":
+        result.quizUser = row[key];
         break;
       case "questionid":
         result.questionId = row[key];
