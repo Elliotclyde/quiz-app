@@ -132,6 +132,18 @@ export const dataBase = {
       });
     });
   },
+  getQuizes: function () {
+    let db = getdb();
+    return new Promise((resolve, reject) => {
+      db.all(`SELECT * FROM quiz`, (err, rows) => {
+        if (err) {
+          return console.error(err.messsage);
+        }
+        db.close();
+        resolve(rows.map(camelCaseifyRow));
+      });
+    });
+  },
 
   getQuestion: function (id) {
     let db = getdb();

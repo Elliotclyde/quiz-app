@@ -41,7 +41,7 @@ app.get("/get-user-quizes/:userId", getUserQuizes);
 app.post("/create-quiz/", createQuiz);
 app.post("/edit-quiz/:quizId", updateQuiz);
 app.post("/delete-quiz/:quizId", deleteQuiz);
-app.get("/get-quiz/:quizId", getQuiz);
+app.get("/get-quiz/:quizId?", getQuiz);
 
 const eventStreamCorsOptions = {
   origin: true,
