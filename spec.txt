@@ -1,0 +1,25 @@
+spec
+
+What should happen in the actual quiz page??
+
+First the person who made the quiz needs to host it:
+
+So first it needs to check: 
+    -Is there a quiz already going? 
+    -Does this quiz exist
+    -Is there a localstorage user ID? 
+    -Does that ID match the creator of the quiz? 
+
+    -IF no to 1 but yes to the other 3 no then:
+
+Then it goes into "Waiting room" mode 
+
+    -This shows the link to invite your friends in  
+    -The host waits for people to join and the server pushes to the client when other people have joined 
+    -When enought people have joined the host can click "start quiz"
+
+Then it goes into quiz mode
+
+    -Only shows one question at a time 
+    -When they answer the host (and potentially later the other players) gets notified they answered (and notified about whether they got it right)
+    -After all the players have answered, the quiz moves to the next question

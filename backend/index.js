@@ -8,6 +8,8 @@ import { deleteQuiz } from "./Controllers/deleteQuiz.js";
 
 import { createUser } from "./Controllers/createUser.js";
 import { getUserQuizes } from "./Controllers/getUserQuizes.js";
+import { dataBase } from "./Database/db.js";
+import { getQuizData } from "./Database/getQuizData.js";
 
 //TODO:
 
@@ -29,6 +31,13 @@ app.use(cors());
 
 const port = 4000;
 
+let runningQuizes = {};
+
+const eventStreamCorsOptions = {
+  origin: true,
+  credentials: true,
+};
+
 // Grab a complete quiz
 
 app.get("/", (req, res) => {
@@ -43,10 +52,162 @@ app.post("/edit-quiz/:quizId", updateQuiz);
 app.post("/delete-quiz/:quizId", deleteQuiz);
 app.get("/get-quiz/:quizId?", getQuiz);
 
-const eventStreamCorsOptions = {
-  origin: true,
-  credentials: true,
-};
+app.get(
+  "/join-quiz/:quizId/:userId",
+  cors(eventStreamCorsOptions),
+  async function (request, response, next) {
+    const headers = {
+      "Cache-Control": "no-cache",
+      "Content-Type": "text/event-stream",
+      Connection: "keep-alive",
+      "transfer-encoding": "chunked",
+    };
+    response.writeHead(200, headers);
+
+    if (
+      runningQuizes[request.params.quizId] &&
+      runningQuizes[request.params.quizId].quizers.filter(
+        (q) => q.userId === request.params.userId
+      ).length === 0
+    ) {
+      dataBase
+        .getUser(request.params.userId)
+        .then((res, rej) => {
+          return res;
+        })
+        .then((res, rej) => {
+          console.log(res);
+          runningQuizes[request.params.quizId].host.write(
+            `event: message\ndata:${JSON.stringify({
+              type: "join",
+              user: res,
+            })}\n\n`
+          );
+          runningQuizes[request.params.quizId].quizers.forEach((client) =>
+            client.response.write(
+              `event: message\ndata:${JSON.stringify({
+                type: "join",
+                user: res,
+              })}\n\n`
+            )
+          );
+          runningQuizes[request.params.quizId].quizers.push({
+            userId: request.params.userId,
+            questionOn: 0,
+            response,
+          });
+        });
+    }
+
+    if (!runningQuizes[request.params.quizId]) {
+      //quiz is not already running
+      getQuizData(request.params.quizId)
+        .then((res, rej) => res)
+        .then(async (res, rej) => {
+          if (res.quizUser != request.params.userId) {
+            // not your quiz
+            response.write(
+              `event: message\ndata:${JSON.stringify({
+                type: "failure",
+                reason: "Not hosted",
+              })}\n\n`
+            );
+          } else {
+            // start hosting quiz
+            let connected = true;
+            request.on("close", function (err) {
+              runningQuizes[request.params.quizId] = null;
+            });
+            runningQuizes[request.params.quizId] = {
+              host: response,
+              quiz: res,
+              quizers: [],
+              questionOn: -1,
+            };
+          }
+        });
+    }
+
+    const clientId = Date.now();
+
+    const newClient = {
+      id: clientId,
+      response,
+    };
+  }
+);
+
+app.post("/start-quiz/:quizId", function (request, response, next) {
+  getQuizData(request.params.quizId)
+    .then((quiz, rej) => quiz)
+    .then((quiz, rej) => {
+      runningQuizes[request.params.quizId].questionOn = 0;
+      runningQuizes[request.params.quizId].host.write(
+        `event: message\ndata:${JSON.stringify({
+          type: "start",
+          question: quiz.questions[0],
+        })}\n\n`
+      );
+      runningQuizes[request.params.quizId].quizers.forEach((client) =>
+        client.response.write(
+          `event: message\ndata:${JSON.stringify({
+            type: "start",
+            question: quiz.questions[0],
+          })}\n\n`
+        )
+      );
+    });
+
+  response.json({ result: "success" });
+});
+
+app.post("/answer-question/:quizId", function (request, response, next) {
+  const answerIndex = request.body.answerIndex;
+  const userId = request.body.userId;
+
+  runningQuizes[request.params.quizId].quizers = runningQuizes[
+    request.params.quizId
+  ].quizers.map((quizer) => {
+    if (quizer.userId == userId) {
+      return { ...quizer, questionOn: quizer.questionOn + 1 };
+    } else return quizer;
+  });
+  if (
+    runningQuizes[request.params.quizId].quizers.filter((quizer) => {
+      quizer.questionOn !=
+        runningQuizes[request.params.quizId].quizers[0].questionOn;
+    }).length == 0
+  ) {
+    getQuizData(request.params.quizId)
+      .then((quiz, rej) => quiz)
+      .then((quiz, rej) => {
+        runningQuizes[request.params.quizId].questionOn =
+          runningQuizes[request.params.quizId].quizers[0].questionOn;
+        runningQuizes[request.params.quizId].host.write(
+          `event: message\ndata:${JSON.stringify({
+            type: "nextQuestion",
+            question:
+              quiz.questions[
+                runningQuizes[request.params.quizId].quizers[0].questionOn
+              ],
+          })}\n\n`
+        );
+        runningQuizes[request.params.quizId].quizers.forEach((client) =>
+          client.response.write(
+            `event: message\ndata:${JSON.stringify({
+              type: "nextQuestion",
+              question:
+                quiz.questions[
+                  runningQuizes[request.params.quizId].quizers[0].questionOn
+                ],
+            })}\n\n`
+          )
+        );
+      });
+  }
+
+  response.json({ Its: "done" });
+});
 
 const cities = ["London", "Paris", "Vienna", "Shanghai", "Mexico", "Lagos"];
 
