@@ -4,9 +4,10 @@ export function WaitingRoom({ isHost, user, quiz }) {
   const [quizers, setQuizers] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [state, setState] = useState("waiting");
-  console.log(quiz);
 
   useEffect(() => {
+    console.log(user);
+    console.log(quiz);
     if (user && quiz) {
       const evtSource = new EventSource(
         import.meta.env.VITE_BACKEND_URL +
@@ -25,7 +26,7 @@ export function WaitingRoom({ isHost, user, quiz }) {
             setCurrentQuestion(data.question);
             break;
           case "join":
-            setQuizers((quizers) => [...quizers, data.user]);
+            setQuizers(data.quizers);
             break;
           case "nextQuestion":
             setCurrentQuestion(data.question);
@@ -33,16 +34,21 @@ export function WaitingRoom({ isHost, user, quiz }) {
           case "failure":
             break;
           case "end":
+            setQuizers(data.quizers);
             setState("end");
             break;
         }
       });
     }
-  }, [quiz]);
+  }, [quiz, user]);
 
   function onAnswerSelect(answerIndex) {
     fetch(
-      import.meta.env.VITE_BACKEND_URL + "/answer-question/" + quiz.quizId,
+      import.meta.env.VITE_BACKEND_URL +
+        "/answer-question/" +
+        quiz.quizId +
+        "/" +
+        user.userId,
       {
         headers: {
           "Content-Type": "application/json",
@@ -76,39 +82,68 @@ export function WaitingRoom({ isHost, user, quiz }) {
       });
   }
 
+  console.log(state);
   return (
     <div>
-      {currentQuestion ? (
-        <div>
-          <h2>{currentQuestion.body}</h2>
-          {currentQuestion.answers.map((a, index) => (
-            <button
-              onClick={() => {
-                onAnswerSelect(index);
-              }}
-            >
-              {a.body}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <>
-          <h2>Waiting for quizers...</h2>
-          <p>{isHost ? "You're hosting" : "You're a guest"}</p>
-          <div>
-            <h3>Current quizers:</h3>
-            {quizers.length == 0
-              ? "Noone's joined the quiz yet!"
-              : quizers.map((quizer) => {
-                  return <p>{quizer.name} has joined the game</p>;
-                })}
-          </div>
-
-          {isHost && quiz ? (
-            <button onClick={onQuizStart}>Start quiz</button>
-          ) : null}
-        </>
-      )}{" "}
+      {(() => {
+        switch (state) {
+          case "waiting":
+            return (
+              <>
+                <h2>Waiting for quizers...</h2>
+                <p>{isHost ? "You're hosting" : "You're a guest"}</p>
+                <div>
+                  <h3>Current quizers:</h3>
+                  {quizers.length == 0
+                    ? "Noone's joined the quiz yet!"
+                    : quizers.map((quizer) => {
+                        return <p>{quizer.name} is ready to quiz</p>;
+                      })}
+                </div>
+                {isHost && quiz ? (
+                  <button onClick={onQuizStart}>Start quiz</button>
+                ) : null}
+              </>
+            );
+          case "quizzing":
+            return isHost ? (
+              <>
+                {" "}
+                <h2>Quizers are on question {currentQuestion.questionId}</h2>
+              </>
+            ) : (
+              <>
+                <h2>{currentQuestion.body}</h2>
+                {currentQuestion.answers.map((a, index) => (
+                  <button
+                    onClick={() => {
+                      onAnswerSelect(index);
+                    }}
+                  >
+                    {a.body}
+                  </button>
+                ))}
+              </>
+            );
+          case "end":
+            return (
+              <h2>
+                The winner is:
+                {
+                  quizers.sort((a, b) => {
+                    if (a.score > b.score) {
+                      return -1;
+                    }
+                    if (a.score < b.score) {
+                      return 1;
+                    }
+                    return 0;
+                  })[0].name
+                }
+              </h2>
+            );
+        }
+      })()}
     </div>
   );
 }

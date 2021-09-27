@@ -2,6 +2,7 @@ import { useState, useEffect } from "preact/hooks";
 import { CreatedModal } from "./CreatedModal";
 import { NavBar } from "./NavBar";
 import { NewUserModal } from "./NewUserModal";
+import { inMemoryStorageForTesting } from "../app";
 
 // Bind a bunch of objects to a form to generate a quiz then send it to the server
 
@@ -25,7 +26,12 @@ export function CreatePage() {
   //  then on return from server set the local storage as that user
 
   useEffect(() => {
-    const localUser = JSON.parse(window.localStorage.getItem("user"));
+    let localUser;
+    if (!inMemoryStorageForTesting) {
+      localUser = JSON.parse(window.localStorage.getItem("user"));
+    } else {
+      localUser = window.inMemoryUser;
+    }
     if (localUser) {
       setData((data) => {
         return { ...data, user: localUser };
@@ -34,7 +40,11 @@ export function CreatePage() {
   }, []);
 
   function onUserCreated(user) {
-    window.localStorage.setItem("user", JSON.stringify(user));
+    if (!inMemoryStorageForTesting) {
+      window.localStorage.setItem("user", JSON.stringify(user));
+    } else {
+      inMemoryUser = user;
+    }
     setData((data) => {
       return { ...data, user: user };
     });

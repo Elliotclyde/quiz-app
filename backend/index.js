@@ -77,25 +77,37 @@ app.get(
         })
         .then((res, rej) => {
           console.log(res);
-          runningQuizes[request.params.quizId].host.write(
-            `event: message\ndata:${JSON.stringify({
-              type: "join",
-              user: res,
-            })}\n\n`
-          );
+
+          runningQuizes[request.params.quizId].quizers.push({
+            userId: request.params.userId,
+            name: res.name,
+            questionOn: 0,
+            response,
+            answers: [],
+            score: 0,
+          });
           runningQuizes[request.params.quizId].quizers.forEach((client) =>
             client.response.write(
               `event: message\ndata:${JSON.stringify({
                 type: "join",
-                user: res,
+                joineedUser: res,
+                quizers: runningQuizes[request.params.quizId].quizers.map(
+                  (q) => {
+                    return { name: q.name, userId: q.userId };
+                  }
+                ),
               })}\n\n`
             )
           );
-          runningQuizes[request.params.quizId].quizers.push({
-            userId: request.params.userId,
-            questionOn: 0,
-            response,
-          });
+          runningQuizes[request.params.quizId].host.write(
+            `event: message\ndata:${JSON.stringify({
+              type: "join",
+              joineedUser: res,
+              quizers: runningQuizes[request.params.quizId].quizers.map((q) => {
+                return { name: q.name, userId: q.userId };
+              }),
+            })}\n\n`
+          );
         });
     }
 
@@ -161,77 +173,114 @@ app.post("/start-quiz/:quizId", function (request, response, next) {
   response.json({ result: "success" });
 });
 
-app.post("/answer-question/:quizId", function (request, response, next) {
-  const answerIndex = request.body.answerIndex;
-  const userId = request.body.userId;
+app.post(
+  "/answer-question/:quizId/:userId",
+  function (request, response, next) {
+    console.log(request.rawHeaders);
+    const answerIndex = request.body.answerIndex;
+    const userId = request.params.userId;
+    const runningQuiz = runningQuizes[request.params.quizId];
 
-  runningQuizes[request.params.quizId].quizers = runningQuizes[
-    request.params.quizId
-  ].quizers.map((quizer) => {
-    if (quizer.userId == userId) {
-      return { ...quizer, questionOn: quizer.questionOn + 1 };
-    } else return quizer;
-  });
-  if (
-    runningQuizes[request.params.quizId].quizers.filter((quizer) => {
-      quizer.questionOn !=
-        runningQuizes[request.params.quizId].quizers[0].questionOn;
-    }).length == 0
-  ) {
-    getQuizData(request.params.quizId)
-      .then((quiz, rej) => quiz)
-      .then((quiz, rej) => {
-        runningQuizes[request.params.quizId].questionOn =
-          runningQuizes[request.params.quizId].quizers[0].questionOn;
-        runningQuizes[request.params.quizId].host.write(
-          `event: message\ndata:${JSON.stringify({
-            type: "nextQuestion",
-            question:
-              quiz.questions[
-                runningQuizes[request.params.quizId].quizers[0].questionOn
-              ],
-          })}\n\n`
-        );
-        runningQuizes[request.params.quizId].quizers.forEach((client) =>
-          client.response.write(
-            `event: message\ndata:${JSON.stringify({
-              type: "nextQuestion",
-              question:
-                quiz.questions[
-                  runningQuizes[request.params.quizId].quizers[0].questionOn
-                ],
-            })}\n\n`
-          )
-        );
-      });
+    const isCorrect =
+      runningQuiz.quiz.questions[runningQuiz.questionOn].answers[answerIndex]
+        .isCorrect;
+
+    const answerBody =
+      runningQuiz.quiz.questions[runningQuiz.questionOn].answers[answerIndex]
+        .body;
+
+    runningQuiz.quizers = runningQuiz.quizers.map((quizer) => {
+      if (quizer.userId == userId) {
+        return {
+          ...quizer,
+          answers: [
+            ...quizer.answers,
+            { answerIndex, isCorrect, body: answerBody },
+          ],
+          questionOn: quizer.questionOn + 1,
+          score: isCorrect ? quizer.score + 1 : quizer.score,
+        };
+      } else return quizer;
+    });
+
+    // If all on the same question
+    if (
+      runningQuiz.quizers.filter((quizer) => {
+        console.log(quizer.questionOn);
+        return quizer.questionOn != runningQuiz.quizers[0].questionOn;
+      }).length == 0
+    ) {
+      getQuizData(request.params.quizId)
+        .then((quiz, rej) => quiz)
+        .then((quiz, rej) => {
+          // If all on the same question and it's the last one
+          if (quiz.questions.length == runningQuiz.quizers[0].questionOn) {
+            // Questions finished - return done
+
+            runningQuiz.host.write(
+              `event: message\ndata:${JSON.stringify({
+                type: "end",
+                // Add data of all the answers that were right/wrong
+                quizers: runningQuiz.quizers.map((q) => {
+                  return {
+                    name: q.name,
+                    id: q.userId,
+                    answers: q.answers,
+                    score: q.score,
+                  };
+                }),
+              })}\n\n`
+            );
+            runningQuiz.quizers.forEach((client) => {
+              client.response.write(
+                `event: message\ndata:${JSON.stringify({
+                  type: "end",
+                  // Add data of all the answers that were right/wrong
+                  quizers: runningQuiz.quizers.map((q) => {
+                    return {
+                      name: q.name,
+                      id: q.userId,
+                      answers: q.answers,
+                      score: q.score,
+                    };
+                  }),
+                })}\n\n`
+              );
+              client.response.end();
+            });
+          } else {
+            // Still questions left? Send event to all quizers that it's time to move to the next question
+
+            runningQuiz.questionOn =
+              runningQuizes[request.params.quizId].quizers[0].questionOn;
+
+            runningQuiz.host.write(
+              `event: message\ndata:${JSON.stringify({
+                type: "nextQuestion",
+                question: quiz.questions[runningQuiz.quizers[0].questionOn],
+              })}\n\n`
+            );
+            runningQuiz.quizers.forEach((client) =>
+              client.response.write(
+                `event: message\ndata:${JSON.stringify({
+                  type: "nextQuestion",
+                  question:
+                    quiz.questions[
+                      runningQuizes[request.params.quizId].quizers[0].questionOn
+                    ],
+                })}\n\n`
+              )
+            );
+          }
+        });
+    } else {
+      runningQuiz.host.write(
+        `event: message\ndata:{\"All\":\"Different\"}\n\n`
+      );
+    }
+    response.end();
   }
-
-  response.json({ Its: "done" });
-});
-
-const cities = ["London", "Paris", "Vienna", "Shanghai", "Mexico", "Lagos"];
-
-app.get("/events/", cors(eventStreamCorsOptions), async (req, res) => {
-  res.set({
-    "Cache-Control": "no-cache",
-    "Content-Type": "text/event-stream",
-    Connection: "keep-alive",
-    "transfer-encoding": "chunked",
-  });
-  res.flushHeaders();
-
-  let connected = true;
-  req.on("close", function (err) {
-    connected = false;
-  });
-  while (connected) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const num = Math.floor(Math.random() * cities.length);
-    res.write("event: message\n");
-    console.log(cities[num]);
-    res.write(`data: ${cities[num]}\n\n`);
-  }
-});
+);
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);

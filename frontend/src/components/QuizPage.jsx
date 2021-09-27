@@ -4,23 +4,25 @@ import { useFetch } from "../hooks/useFetch";
 import { WaitingRoom } from "./WaitingRoom";
 import { useEffect, useState } from "preact/hooks";
 import { NewUserModal } from "./NewUserModal";
+import { inMemoryStorageForTesting } from "../app";
 
 // Needs to
 // Load the quiz data
 // Sign up for
 
 export function QuizPage({ quizId }) {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const localUser = JSON.parse(window.localStorage.getItem("user"));
-    if (localUser) {
-      setUser(localUser);
-    }
-  }, []);
+  const [user, setUser] = useState(
+    inMemoryStorageForTesting
+      ? window.inMemoryUser
+      : window.localStorage.getItem("user")
+  );
 
   function onUserCreated(newUser) {
-    window.localStorage.setItem("user", JSON.stringify(newUser));
+    if (!inMemoryStorageForTesting) {
+      window.localStorage.setItem("user", JSON.stringify(newUser));
+    } else {
+      window.inMemoryUser = newUser;
+    }
     setUser(newUser);
   }
 
@@ -55,12 +57,8 @@ export function QuizPage({ quizId }) {
           <h1>Quiz {quizId}</h1>
           <WaitingRoom
             quiz={quizData}
-            isHost={
-              quizData &&
-              quizData.quizUser ==
-                JSON.parse(window.localStorage.getItem("user"))?.userId
-            }
-            user={JSON.parse(window.localStorage.getItem("user"))}
+            isHost={quizData && quizData.quizUser == user?.userId}
+            user={user}
           />
         </div>
       )}

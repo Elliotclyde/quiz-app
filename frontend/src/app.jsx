@@ -6,6 +6,13 @@ import { useState } from "preact/hooks";
 import { useSSE } from "./hooks/useSSE";
 import Router from "preact-router";
 
+// While in dev we remove the user from local storage for testing
+
+//window.localStorage.removeItem("user");
+
+export const inMemoryStorageForTesting = true;
+window.inMemoryUser = null;
+
 export function App(props) {
   return (
     <Router>
