@@ -1,9 +1,11 @@
-import { useState } from "preact/hooks";
-import { inMemoryStorageForTesting } from "../app";
+import { useState, useContext } from "preact/hooks";
+import { inMemoryStorageForTesting, UserContext } from "../app";
 
-export function NewUserModal({ onUserCreated }) {
+export function NewUserModal() {
   const [name, setName] = useState("");
+  const { user, setUser } = useContext(UserContext);
 
+  console.log(user);
   function onSubmit(e) {
     e.preventDefault();
     fetch(import.meta.env.VITE_BACKEND_URL + "/create-user/", {
@@ -22,8 +24,7 @@ export function NewUserModal({ onUserCreated }) {
         if (inMemoryStorageForTesting && document.getElementById("id").value) {
           res.userId = parseInt(document.getElementById("id").value);
         }
-        console.log(res);
-        onUserCreated(res);
+        setUser(res);
       });
   }
 

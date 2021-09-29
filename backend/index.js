@@ -13,17 +13,19 @@ import { getQuizData } from "./Database/getQuizData.js";
 
 //TODO:
 
-// The app should return a link after the creation or editing of a quiz has completed.
-// Need to have some sort of identity in local storage.
-// And to record the id of the person who created the quiz.
+/*
 
-// New database table - users
-// Stores id and nickname
-// quizes need to be owned by a user
+Instead of the way create/edit works, it should immediately create a blank quiz and then start to edit it. 
 
-// When we create a quiz the front end needs to check if local storage has a user id and send it with the data
-// If not, the front end should send the data without a userID
-// Then the backend creates a userId, adds it to the database, and sends it back
+At the bottom of the create/edit page it should show a "save" button which will just save it and a "save and host" button.
+
+This will take you to the quiz page.
+
+Also the quizzing page needs to show something
+
+Also after you're finished editing it it 
+
+*/ 
 
 const app = express();
 app.use(express.json());
@@ -171,6 +173,7 @@ app.post("/start-quiz/:quizId", function (request, response, next) {
     });
 
   response.json({ result: "success" });
+  response.end();
 });
 
 app.post(
@@ -273,10 +276,6 @@ app.post(
             );
           }
         });
-    } else {
-      runningQuiz.host.write(
-        `event: message\ndata:{\"All\":\"Different\"}\n\n`
-      );
     }
     response.end();
   }

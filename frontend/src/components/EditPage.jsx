@@ -1,13 +1,14 @@
 import { useFetch } from "../hooks/useFetch";
 import { NavBar } from "./NavBar";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useContext } from "preact/hooks";
 import { QuizEditList } from "./QuizEditList";
-
+import { UserContext } from "../app";
 // Needs to
 // Load the quiz data
 // Sign up for
 
 export function EditPage({ quizId }) {
+  const { user } = useContext(UserContext);
   console.log(quizId);
 
   const quizData = useFetch(
@@ -15,10 +16,8 @@ export function EditPage({ quizId }) {
     quizId !== ""
   );
 
-  const user = JSON.parse(window.localStorage.getItem("user"));
-
   const userListdata = useFetch(
-    import.meta.env.VITE_BACKEND_URL + "/get-user-quizes/" + user.userId,
+    import.meta.env.VITE_BACKEND_URL + "/get-user-quizes/" + user?.userId,
     quizId === "" && user,
     [quizId]
   );
@@ -198,7 +197,11 @@ function EditForm({ initialData, quizId }) {
       };
     });
   }
-  // TODO: Add option to
+
+  function onSaveAndHost(event) {
+    event.preventDefault();
+  }
+
   function onDeleteQuiz() {
     fetch(import.meta.env.VITE_BACKEND_URL + "/delete-quiz/" + quizId, {
       headers: {
@@ -292,7 +295,9 @@ function EditForm({ initialData, quizId }) {
           );
         })}
         <button onClick={onAddQuestion}>Add Question</button>
-        <input type="submit" value="Submit" />
+        <input type="submit" value="Save" />
+
+        <button onClick={onSaveAndHost}>Save and host</button>
       </form>
       <button onClick={onDeleteQuiz}>Delete quiz</button>
     </>

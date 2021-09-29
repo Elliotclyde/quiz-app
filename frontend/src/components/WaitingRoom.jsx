@@ -1,5 +1,15 @@
 import { useState, useEffect } from "preact/hooks";
 
+const sortByScore = (a, b) => {
+  if (a.score > b.score) {
+    return -1;
+  }
+  if (a.score < b.score) {
+    return 1;
+  }
+  return 0;
+};
+
 export function WaitingRoom({ isHost, user, quiz }) {
   const [quizers, setQuizers] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
@@ -125,21 +135,12 @@ export function WaitingRoom({ isHost, user, quiz }) {
                 ))}
               </>
             );
+          // Show some nicer data here
           case "end":
             return (
               <h2>
                 The winner is:
-                {
-                  quizers.sort((a, b) => {
-                    if (a.score > b.score) {
-                      return -1;
-                    }
-                    if (a.score < b.score) {
-                      return 1;
-                    }
-                    return 0;
-                  })[0].name
-                }
+                {quizers.sort(sortByScore)[0].name}
               </h2>
             );
         }

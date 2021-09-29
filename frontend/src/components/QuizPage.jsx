@@ -2,20 +2,16 @@ import { NavBar } from "./NavBar";
 import { QuizHostList } from "./QuizHostList";
 import { useFetch } from "../hooks/useFetch";
 import { WaitingRoom } from "./WaitingRoom";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useState, useContext } from "preact/hooks";
 import { NewUserModal } from "./NewUserModal";
-import { inMemoryStorageForTesting } from "../app";
+import { inMemoryStorageForTesting, UserContext } from "../app";
 
 // Needs to
 // Load the quiz data
 // Sign up for
 
 export function QuizPage({ quizId }) {
-  const [user, setUser] = useState(
-    inMemoryStorageForTesting
-      ? window.inMemoryUser
-      : window.localStorage.getItem("user")
-  );
+  const { user, setUser } = useContext(UserContext);
 
   function onUserCreated(newUser) {
     if (!inMemoryStorageForTesting) {
@@ -42,7 +38,7 @@ export function QuizPage({ quizId }) {
     <>
       <NavBar />
 
-      {user == null ? <NewUserModal onUserCreated={onUserCreated} /> : ""}
+      {user == null ? <NewUserModal /> : ""}
       {quizId === "" ? (
         listData ? (
           <div>
