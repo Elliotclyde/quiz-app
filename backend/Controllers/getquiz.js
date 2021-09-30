@@ -19,5 +19,7 @@ export async function getQuiz(request, response) {
   } else {
     const data = await getQuizData(request.params.quizId);
     response.json(data);
+
+    response.end();
   }
 }

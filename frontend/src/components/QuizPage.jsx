@@ -13,15 +13,6 @@ import { inMemoryStorageForTesting, UserContext } from "../app";
 export function QuizPage({ quizId }) {
   const { user, setUser } = useContext(UserContext);
 
-  function onUserCreated(newUser) {
-    if (!inMemoryStorageForTesting) {
-      window.localStorage.setItem("user", JSON.stringify(newUser));
-    } else {
-      window.inMemoryUser = newUser;
-    }
-    setUser(newUser);
-  }
-
   const listData = useFetch(
     import.meta.env.VITE_BACKEND_URL + "/get-quiz/",
     quizId === "",
@@ -50,12 +41,8 @@ export function QuizPage({ quizId }) {
         )
       ) : (
         <div>
-          <h1>Quiz {quizId}</h1>
-          <WaitingRoom
-            quiz={quizData}
-            isHost={quizData && quizData.quizUser == user?.userId}
-            user={user}
-          />
+          <h1>{quizData?.title}</h1>
+          <WaitingRoom quiz={quizData} user={user} />
         </div>
       )}
     </>

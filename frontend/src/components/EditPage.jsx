@@ -200,6 +200,24 @@ function EditForm({ initialData, quizId }) {
 
   function onSaveAndHost(event) {
     event.preventDefault();
+    console.log(JSON.stringify(data));
+    fetch(import.meta.env.VITE_BACKEND_URL + "/edit-quiz/" + quizId, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      mode: "cors",
+      body: JSON.stringify(data),
+    })
+      .then((res, rej) => {
+        return res.json();
+      })
+      .then((res, rej) => {
+        console.log("here");
+        window.location.href =
+          import.meta.env.VITE_FRONTEND_URL + "/quiz/" + quizId;
+        return res.json();
+      });
   }
 
   function onDeleteQuiz() {

@@ -1,7 +1,7 @@
 import { useState, useContext } from "preact/hooks";
 import { inMemoryStorageForTesting, UserContext } from "../app";
 
-export function NewUserModal() {
+export function NewUserModal({ onAuthCallback }) {
   const [name, setName] = useState("");
   const { user, setUser } = useContext(UserContext);
 
@@ -25,6 +25,10 @@ export function NewUserModal() {
           res.userId = parseInt(document.getElementById("id").value);
         }
         setUser(res);
+        console.log(res);
+        if (onAuthCallback) {
+          onAuthCallback(res);
+        }
       });
   }
 

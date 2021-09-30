@@ -30,5 +30,7 @@ export async function deleteQuiz(request, response) {
     // Then quiz
 
     await dataBase.deleteQuiz(request.params.quizId);
+
+    response.end();
   });
 }

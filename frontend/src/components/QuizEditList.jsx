@@ -6,7 +6,7 @@ export function QuizEditList({ listData }) {
           <>
             <h2>{quiz.title}</h2>
             <p>
-              <a href={"./edit/" + quiz.quizId}> Edit this quiz</a>
+              <a href={"./editor/" + quiz.quizId}> Edit this quiz</a>
             </p>
           </>
         );

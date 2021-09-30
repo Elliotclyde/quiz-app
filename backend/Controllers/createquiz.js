@@ -44,6 +44,7 @@ export function createQuiz(req, response) {
       });
       databaseQuiz.questions = databaseQuestions;
       response.json(databaseQuiz);
+      response.end();
     });
 }
 

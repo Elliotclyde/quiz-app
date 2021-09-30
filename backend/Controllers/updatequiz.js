@@ -138,5 +138,7 @@ export function updateQuiz(req, response) {
 
         return dataBase.deleteQuestion(nextQuestion.questionId);
       }, Promise.resolve());
+      response.json(newQuizData);
+      response.end();
     });
 }

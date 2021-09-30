@@ -17,12 +17,10 @@ body {
 }
 
 #app {
-  height: 100%;
   text-align: center;
   background-color: #673ab8;
   color: #fff;
   font-size: 1.5em;
-  padding-top: 100px;
 }
 
 .link {
@@ -36,4 +34,8 @@ body {
   left: 0;
   right: 0;
   background-color: hsla(0deg, 0%, 10%, 0.5);
+}
+table{
+  max-width: 550px;
+  margin: auto;
 }

@@ -21,27 +21,31 @@ export function NavBar() {
   const [needsUser, setNeedsUser] = useState(false);
   const { user } = useContext(UserContext);
 
+  function createQuiz(currentUser) {
+    initialQuiz.user = currentUser;
+    fetch(import.meta.env.VITE_BACKEND_URL + "/create-quiz/", {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      mode: "cors",
+      body: JSON.stringify(initialQuiz),
+    })
+      .then((res, rej) => {
+        if (!res.ok) {
+        } else return res.json();
+      })
+      .then((res, rej) => {
+        console.log(res);
+        setNeedsUser(false);
+        window.location.href =
+          import.meta.env.VITE_FRONTEND_URL + "/editor/" + res.quizId;
+      });
+  }
+
   function onCreateClick() {
     if (user) {
-      initialQuiz.user = user;
-      fetch(import.meta.env.VITE_BACKEND_URL + "/create-quiz/", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-        mode: "cors",
-        body: JSON.stringify(initialQuiz),
-      })
-        .then((res, rej) => {
-          if (!res.ok) {
-          } else return res.json();
-        })
-        .then((res, rej) => {
-          console.log(res);
-          setNeedsUser(false);
-          window.location.href =
-            import.meta.env.VITE_FRONTEND_URL + "/editor/" + res.quizId;
-        });
+      createQuiz(user);
     } else {
       setNeedsUser(true);
     }
@@ -53,7 +57,7 @@ export function NavBar() {
       <button onClick={onCreateClick}>Create</button>
       <Link href="/editor">Edit</Link>
       <Link href="/quiz">Quiz</Link>
-      {needsUser && !user ? <NewUserModal /> : null}
+      {needsUser && !user ? <NewUserModal onAuthCallback={createQuiz} /> : null}
     </nav>
   );
 }

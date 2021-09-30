@@ -12,5 +12,7 @@ export async function getUserQuizes(request, response) {
     })
     .then((res, rej) => {
       response.json(res);
+
+      response.end();
     });
 }

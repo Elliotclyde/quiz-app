@@ -1,4 +1,5 @@
 import { useState, useEffect } from "preact/hooks";
+import { ResultsTable } from "./ResultsTable";
 
 const sortByScore = (a, b) => {
   if (a.score > b.score) {
@@ -10,14 +11,16 @@ const sortByScore = (a, b) => {
   return 0;
 };
 
-export function WaitingRoom({ isHost, user, quiz }) {
-  const [quizers, setQuizers] = useState([]);
+export function WaitingRoom({ user, quiz }) {
+  const [data, setData] = useState();
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [state, setState] = useState("waiting");
+  const [answered, setAnswered] = useState(null);
 
+  const quizers = data?.quizers || [];
+
+  const isHost = quiz?.quizUser == user?.userId;
   useEffect(() => {
-    console.log(user);
-    console.log(quiz);
     if (user && quiz) {
       const evtSource = new EventSource(
         import.meta.env.VITE_BACKEND_URL +
@@ -27,24 +30,28 @@ export function WaitingRoom({ isHost, user, quiz }) {
           user.userId
       );
       evtSource.addEventListener("message", function (event) {
-        console.log(event);
         const data = JSON.parse(event.data);
-        console.log(data);
+        console.log(data.type);
         switch (data.type) {
           case "start":
             setState("quizzing");
             setCurrentQuestion(data.question);
             break;
           case "join":
-            setQuizers(data.quizers);
+            setData(data);
             break;
           case "nextQuestion":
             setCurrentQuestion(data.question);
+            setAnswered(data.answered);
             break;
           case "failure":
             break;
+          case "answer":
+            console.log("ANswered!");
+            setAnswered(data.answered);
+            break;
           case "end":
-            setQuizers(data.quizers);
+            setData(data);
             setState("end");
             break;
         }
@@ -67,13 +74,7 @@ export function WaitingRoom({ isHost, user, quiz }) {
         mode: "cors",
         body: JSON.stringify({ user: user, answerIndex: answerIndex }),
       }
-    )
-      .then((res, rej) => {
-        return res.json();
-      })
-      .then((res, rej) => {
-        console.log(res);
-      });
+    );
   }
 
   function onQuizStart() {
@@ -92,7 +93,6 @@ export function WaitingRoom({ isHost, user, quiz }) {
       });
   }
 
-  console.log(state);
   return (
     <div>
       {(() => {
@@ -100,25 +100,44 @@ export function WaitingRoom({ isHost, user, quiz }) {
           case "waiting":
             return (
               <>
-                <h2>Waiting for quizers...</h2>
-                <p>{isHost ? "You're hosting" : "You're a guest"}</p>
+                {isHost ? (
+                  <>
+                    <h2>Waiting for quizers...</h2>
+                    <p>You're hosting</p>
+                  </>
+                ) : (
+                  <>
+                    <h2>
+                      Waiting for host {data?.host?.name} to start the quiz
+                    </h2>
+                  </>
+                )}
                 <div>
                   <h3>Current quizers:</h3>
                   {quizers.length == 0
                     ? "Noone's joined the quiz yet!"
                     : quizers.map((quizer) => {
-                        return <p>{quizer.name} is ready to quiz</p>;
+                        return quizer.userId == user.userId ? (
+                          <p>You are ready to quiz</p>
+                        ) : (
+                          <p>
+                            {quizer.name.charAt(0).toUpperCase() +
+                              quizer.name.slice(1)}{" "}
+                            is ready to quiz
+                          </p>
+                        );
                       })}
                 </div>
                 {isHost && quiz ? (
-                  <button onClick={onQuizStart}>Start quiz</button>
+                  <button disabled={quizers.length == 0} onClick={onQuizStart}>
+                    Start quiz
+                  </button>
                 ) : null}
               </>
             );
           case "quizzing":
             return isHost ? (
               <>
-                {" "}
                 <h2>Quizers are on question {currentQuestion.questionId}</h2>
               </>
             ) : (
@@ -133,16 +152,32 @@ export function WaitingRoom({ isHost, user, quiz }) {
                     {a.body}
                   </button>
                 ))}
+                {answered ? (
+                  <p>
+                    {answered.name} just answered
+                    {answered.isCorrect ? " correctly" : " incorrectly"}
+                  </p>
+                ) : null}
               </>
             );
           // Show some nicer data here
           case "end":
-            return (
-              <h2>
-                The winner is:
-                {quizers.sort(sortByScore)[0].name}
-              </h2>
-            );
+            return (function () {
+              const winner = quizers.sort(sortByScore)[0];
+              return (
+                <>
+                  {parseInt(winner.userId) === user.userId ? (
+                    <h2>You win!</h2>
+                  ) : (
+                    <h2>
+                      The winner is:
+                      {" " + winner.name}.
+                    </h2>
+                  )}
+                  <ResultsTable data={data} />
+                </>
+              );
+            })();
         }
       })()}
     </div>
