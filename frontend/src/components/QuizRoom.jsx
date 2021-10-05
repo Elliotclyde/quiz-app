@@ -1,5 +1,6 @@
 import { useState, useEffect } from "preact/hooks";
 import { ResultsTable } from "./ResultsTable";
+import { CopyButton } from "./CopyButton";
 
 const sortByScore = (a, b) => {
   if (a.score > b.score) {
@@ -115,11 +116,11 @@ export function QuizRoom({ user, quiz }) {
                     <h2>Waiting for quizers...</h2>
                     <p>You're hosting</p>
                     <p>Send your friends this link to join:</p>
-                    <p>
+                    <CopyButton>
                       {import.meta.env.VITE_FRONTEND_URL +
                         "/quiz/" +
                         quiz?.quizId}
-                    </p>
+                    </CopyButton>
                   </>
                 ) : (
                   <>
