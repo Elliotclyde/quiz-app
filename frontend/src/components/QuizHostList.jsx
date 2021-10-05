@@ -1,10 +1,10 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useContext } from "preact/hooks";
+import { UserContext } from "../app";
 
 export function QuizHostList({ listData }) {
-  const userQuizes = listData.filter(
-    (quiz) =>
-      quiz.quizUser === JSON.parse(window.localStorage.getItem("user"))?.userId
-  );
+  const { user } = useContext(UserContext);
+
+  const userQuizes = listData.filter((quiz) => quiz.quizUser === user?.userId);
 
   return (
     <div>

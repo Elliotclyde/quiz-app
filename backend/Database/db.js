@@ -1,3 +1,4 @@
+import e, { response } from "express";
 import sqlite3 from "sqlite3";
 
 function getdb() {
@@ -22,7 +23,7 @@ let userIdHead = 0;
 
 export const dataBase = {
   // create tables
-  initialise: function () {
+  migrate: function () {
     let db = getdb();
     db.serialize(function () {
       db.run("CREATE TABLE user (userid INTEGER PRIMARY KEY, name TEXT)");
@@ -36,8 +37,61 @@ export const dataBase = {
     db.run(
       "CREATE TABLE answer (answerid INTEGER PRIMARY KEY, body TEXT, iscorrect INTEGER, answerquestion INTEGER, FOREIGN KEY(answerquestion) REFERENCES question(questionid))"
     );
-
     db.close();
+  },
+  initialise: function () {
+    let db = getdb();
+    return new Promise((resolve, reject) => {
+      db.get(
+        "SELECT quizid FROM quiz WHERE  quizid = (SELECT MAX(quizid) FROM quiz);",
+        [],
+        (error, quizRes) => {
+          if (quizRes == undefined) {
+            quizIdHead = 0;
+          } else {
+            quizIdHead = quizRes.quizid + 1;
+          }
+
+          db.get(
+            "SELECT questionid FROM question WHERE  questionid = (SELECT MAX(questionid) FROM question);",
+            [],
+            (error, questionRes) => {
+              if (questionRes == undefined) {
+                questionIdHead = 0;
+              } else {
+                questionIdHead = questionRes.questionid + 1;
+              }
+              db.get(
+                "SELECT answerid FROM answer WHERE answerid = (SELECT MAX(answerid) FROM answer);",
+                [],
+                (error, answerRes) => {
+                  if (answerRes == undefined) {
+                    answerIdHead = 0;
+                  } else {
+                    answerIdHead = answerRes.answerid + 1;
+                  }
+                  db.get(
+                    "SELECT userid FROM user WHERE userid = (SELECT MAX(userid) FROM user);",
+                    [],
+                    (error, userRes) => {
+                      if (userRes == undefined) {
+                        userIdHead = 0;
+                      } else {
+                        userIdHead = userRes.userid + 1;
+                      }
+                      resolve();
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+      const highestQuestionId = 1;
+      const highestAnswerId = 1;
+      const highestUserId = 1;
+    });
   },
   newUser: function (name) {
     let db = getdb();

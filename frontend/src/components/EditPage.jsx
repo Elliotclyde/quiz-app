@@ -3,6 +3,8 @@ import { NavBar } from "./NavBar";
 import { useState, useEffect, useContext } from "preact/hooks";
 import { QuizEditList } from "./QuizEditList";
 import { UserContext } from "../app";
+import { NewUserModal } from "./NewUserModal";
+import { DeleteQuizModal } from "./DeleteQuizModal";
 // Needs to
 // Load the quiz data
 // Sign up for
@@ -25,7 +27,8 @@ export function EditPage({ quizId }) {
   return (
     <>
       <NavBar />
-      <div>
+      <div className="quiz-edit-wrapper">
+        <h1>Quiz editor</h1>
         {quizId != "" ? (
           quizData != null ? (
             <EditForm initialData={quizData} quizId={quizId} />
@@ -34,6 +37,7 @@ export function EditPage({ quizId }) {
           )
         ) : (
           <>
+            {user == null ? <NewUserModal /> : ""}
             <h1>Select quiz to edit</h1>
             {userListdata != null ? (
               <QuizEditList listData={userListdata} />
@@ -49,6 +53,7 @@ export function EditPage({ quizId }) {
 
 function EditForm({ initialData, quizId }) {
   const [data, setData] = useState(initialData);
+  const [deleteModalShowing, setDeleteModalShowing] = useState(false);
 
   useEffect(() => {
     console.log(data);
@@ -213,53 +218,80 @@ function EditForm({ initialData, quizId }) {
         return res.json();
       })
       .then((res, rej) => {
-        console.log("here");
         window.location.href =
           import.meta.env.VITE_FRONTEND_URL + "/quiz/" + quizId;
         return res.json();
       });
   }
 
-  function onDeleteQuiz() {
-    fetch(import.meta.env.VITE_BACKEND_URL + "/delete-quiz/" + quizId, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-      mode: "cors",
-      body: JSON.stringify(data),
-    });
+  function onDeleteQuiz(deleting) {
+    if (deleting) {
+      fetch(import.meta.env.VITE_BACKEND_URL + "/delete-quiz/" + quizId, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        mode: "cors",
+        body: JSON.stringify(data),
+      })
+        .then((res, rej) => {
+          return res.json();
+        })
+        .then((res, rej) => {
+          console.log("here");
+          if (res.result === "deleted") {
+            window.location.href =
+              import.meta.env.VITE_FRONTEND_URL + "/editor";
+          }
+        });
+    } else {
+      setDeleteModalShowing(false);
+    }
   }
 
   return (
     <>
+      {deleteModalShowing ? (
+        <DeleteQuizModal onDeleteCallback={onDeleteQuiz} />
+      ) : (
+        ""
+      )}
       <form onSubmit={onSubmit} action="" method="post">
-        <label htmlFor="title-input">Title</label>
-        <input
-          id="title-input"
-          type="text"
-          value={data.title}
-          name="title"
-          onInput={onTitleChange}
-        />
+        <div className="title-input-wrapper">
+          <label className="title-input-label" htmlFor="title-input">
+            Title:
+          </label>
+          <input
+            id="title-input"
+            type="text"
+            value={data.title}
+            name="title"
+            onInput={onTitleChange}
+          />
+        </div>
         {data.questions.map((q, qIndex) => {
           return (
             <div key={qIndex}>
-              <label htmlFor={"question-input-text-" + qIndex}>Question</label>
-              <input
-                id={"question-input-text-" + qIndex}
-                type="text"
-                name={"questionInputText" + qIndex}
-                onInput={(e) => {
-                  onQuestionChange(e, qIndex);
-                }}
-                value={q.body}
-              />
+              <div className="question-input-wrapper">
+                <label htmlFor={"question-input-text-" + qIndex}>
+                  Question {qIndex + 1}:
+                </label>
+                <input
+                  className="question-input"
+                  id={"question-input-text-" + qIndex}
+                  type="text"
+                  name={"questionInputText" + qIndex}
+                  onInput={(e) => {
+                    onQuestionChange(e, qIndex);
+                  }}
+                  value={q.body}
+                />
+              </div>
               {q.answers.map((a, aIndex) => {
                 return (
                   <div key={aIndex}>
                     <label htmlFor={"answer-input-text-" + aIndex}>
-                      Answer {aIndex + 1}
+                      Answer {aIndex + 1}:
                     </label>
                     <input
                       id={"answer-input-text-" + aIndex}
@@ -313,11 +345,18 @@ function EditForm({ initialData, quizId }) {
           );
         })}
         <button onClick={onAddQuestion}>Add Question</button>
-        <input type="submit" value="Save" />
-
-        <button onClick={onSaveAndHost}>Save and host</button>
+        <div className="save-wrapper">
+          <input type="submit" value="Save" />
+          <button onClick={onSaveAndHost}>Save and host</button>
+        </div>
       </form>
-      <button onClick={onDeleteQuiz}>Delete quiz</button>
+      <button
+        onClick={() => {
+          setDeleteModalShowing(true);
+        }}
+      >
+        Delete quiz
+      </button>
     </>
   );
 }

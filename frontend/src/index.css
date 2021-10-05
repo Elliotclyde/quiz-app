@@ -1,30 +1,56 @@
-html,
-body {
-  height: 100%;
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  background: #fafafa;
-  font-family: "Helvetica Neue", arial, sans-serif;
-  font-weight: 400;
-  color: #444;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 * {
   box-sizing: border-box;
+  font-family: "Inter", sans-serif;
 }
 
 #app {
   text-align: center;
-  background-color: #673ab8;
-  color: #fff;
-  font-size: 1.5em;
 }
 
-.link {
-  color: #fff;
+h1 {
+  text-transform: uppercase;
+}
+
+nav {
+  display: flex;
+  justify-content: space-around;
+  max-width: 400px;
+  margin: auto;
+}
+nav a {
+  text-transform: uppercase;
+  text-decoration: none;
+  font-size: 1.5rem;
+  color: hsl(150deg, 30%, 15%);
+  flex-grow: 1;
+}
+nav button {
+  display: inline;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-decoration: none;
+  background-color: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  text-transform: uppercase;
+  color: hsl(150deg, 30%, 15%);
+  flex-grow: 1;
+}
+nav a:hover,
+nav button:hover {
+  background-color: hsl(150deg, 30%, 80%);
+}
+
+a {
+  color: hsl(150deg, 90%, 20%);
+}
+
+ul {
+  width: 255px;
+  margin: auto;
+  text-align: left;
 }
 
 .modal-background {
@@ -33,9 +59,43 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: hsla(0deg, 0%, 10%, 0.5);
+  background-color: hsla(0deg, 0%, 10%, 0.7);
 }
-table{
+
+.modal {
+  max-width: 200px;
+  margin: 50px auto;
+  background-color: hsl(0deg, 0%, 90%);
+}
+
+table {
   max-width: 550px;
   margin: auto;
+}
+.title-input-label {
+  margin-right: 1em;
+}
+.title-input-wrapper {
+  margin: 0 0 2em 0;
+}
+
+input:not([type="submit"]) {
+  border: none;
+  background-color: hsl(150deg, 30%, 80%);
+}
+label {
+  font-weight: bold;
+}
+.quiz-edit-wrapper {
+  max-width: 500px;
+  margin: auto;
+}
+.question-input-wrapper {
+  margin-top: 2em;
+  display: flex;
+  flex-direction: column;
+}
+.save-wrapper {
+  margin-top: 2em;
+  margin-bottom: 2em;
 }

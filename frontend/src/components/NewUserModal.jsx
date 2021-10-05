@@ -39,7 +39,7 @@ export function NewUserModal({ onAuthCallback }) {
   return (
     <div className="modal-background">
       <div className="modal">
-        <h2>New user</h2>
+        <h2>Welcome!</h2>
         <form onSubmit={onSubmit}>
           <label htmlFor="new-name">Enter name:</label>
           <input

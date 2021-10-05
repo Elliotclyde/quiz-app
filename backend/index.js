@@ -6,11 +6,14 @@ import { getQuiz } from "./Controllers/getQuiz.js";
 import { updateQuiz } from "./Controllers/updateQuiz.js";
 import { deleteQuiz } from "./Controllers/deleteQuiz.js";
 
+import { joinQuiz } from "./Controllers/joinQuiz.js";
+import { startQuiz } from "./Controllers/startQuiz.js";
+import { answerQuestion } from "./Controllers/answerQuestion.js";
+
 import { createUser } from "./Controllers/createUser.js";
 import { getUserQuizes } from "./Controllers/getUserQuizes.js";
-import { dataBase } from "./Database/db.js";
-import { getQuizData } from "./Database/getQuizData.js";
 
+import { dataBase } from "./Database/db.js";
 //TODO:
 
 /*
@@ -26,14 +29,14 @@ Also the quizzing page needs to show something
 Also after you're finished editing it it 
 
 */
-
+dataBase.initialise();
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 const port = 4000;
 
-let runningQuizes = {};
+export let runningQuizes = {};
 
 const eventStreamCorsOptions = {
   origin: true,
@@ -54,284 +57,11 @@ app.post("/edit-quiz/:quizId", updateQuiz);
 app.post("/delete-quiz/:quizId", deleteQuiz);
 app.get("/get-quiz/:quizId?", getQuiz);
 
-app.get(
-  "/join-quiz/:quizId/:userId",
-  cors(eventStreamCorsOptions),
-  async function (request, response, next) {
-    const headers = {
-      "Cache-Control": "no-cache",
-      "Content-Type": "text/event-stream",
-      Connection: "keep-alive",
-      "transfer-encoding": "chunked",
-    };
-    response.writeHead(200, headers);
+app.get("/join-quiz/:quizId/:userId", cors(eventStreamCorsOptions), joinQuiz);
 
-    if (
-      runningQuizes[request.params.quizId] &&
-      runningQuizes[request.params.quizId].quizers.filter(
-        (q) => q.userId === request.params.userId
-      ).length === 0
-    ) {
-      dataBase
-        .getUser(request.params.userId)
-        .then((res, rej) => {
-          return res;
-        })
-        .then((res, rej) => {
-          console.log(res);
+app.post("/start-quiz/:quizId", startQuiz);
 
-          runningQuizes[request.params.quizId].quizers.push({
-            userId: request.params.userId,
-            name: res.name,
-            questionOn: 0,
-            response,
-            answers: [],
-            score: 0,
-          });
-          runningQuizes[request.params.quizId].quizers.forEach((client) =>
-            client.response.write(
-              `event: message\ndata:${JSON.stringify({
-                type: "join",
-                joineedUser: res,
-                host: {
-                  name: runningQuizes[request.params.quizId].host.name,
-                  userId: runningQuizes[request.params.quizId].host.userId,
-                },
-                quizers: runningQuizes[request.params.quizId].quizers.map(
-                  (q) => {
-                    return { name: q.name, userId: q.userId };
-                  }
-                ),
-              })}\n\n`
-            )
-          );
-          runningQuizes[request.params.quizId].host.write(
-            `event: message\ndata:${JSON.stringify({
-              type: "join",
-              joineedUser: res,
-              host: {
-                name: runningQuizes[request.params.quizId].host.name,
-                userId: runningQuizes[request.params.quizId].host.userId,
-              },
-              quizers: runningQuizes[request.params.quizId].quizers.map((q) => {
-                return { name: q.name, userId: q.userId };
-              }),
-            })}\n\n`
-          );
-        });
-    }
-
-    if (!runningQuizes[request.params.quizId]) {
-      //quiz is not already running
-
-      dataBase
-        .getUser(request.params.userId)
-        .then((res, rej) => res)
-        .then((res, rej) => {
-          const user = res;
-          getQuizData(request.params.quizId)
-            .then((res, rej) => res)
-            .then(async (res, rej) => {
-              if (res.quizUser != request.params.userId) {
-                // not your quiz
-                response.write(
-                  `event: message\ndata:${JSON.stringify({
-                    type: "failure",
-                    reason: "Not hosted",
-                  })}\n\n`
-                );
-              } else {
-                // start hosting quiz
-                let connected = true;
-                const host = response;
-                host.name = user.name;
-                host.userId = user.userId;
-                request.on("close", function (err) {
-                  runningQuizes[request.params.quizId] = null;
-                });
-                runningQuizes[request.params.quizId] = {
-                  host,
-                  quiz: res,
-                  quizers: [],
-                  questionOn: -1,
-                };
-              }
-            });
-        });
-    }
-  }
-);
-
-app.post("/start-quiz/:quizId", function (request, response, next) {
-  getQuizData(request.params.quizId)
-    .then((quiz, rej) => quiz)
-    .then((quiz, rej) => {
-      runningQuizes[request.params.quizId].questionOn = 0;
-      runningQuizes[request.params.quizId].host.write(
-        `event: message\ndata:${JSON.stringify({
-          type: "start",
-          question: quiz.questions[0],
-        })}\n\n`
-      );
-      runningQuizes[request.params.quizId].quizers.forEach((client) =>
-        client.response.write(
-          `event: message\ndata:${JSON.stringify({
-            type: "start",
-            question: quiz.questions[0],
-          })}\n\n`
-        )
-      );
-    });
-
-  response.json({ result: "success" });
-  response.end();
-});
-
-app.post(
-  "/answer-question/:quizId/:userId",
-  function (request, response, next) {
-    const answerIndex = request.body.answerIndex;
-    const userId = request.params.userId;
-    const runningQuiz = runningQuizes[request.params.quizId];
-
-    const isCorrect =
-      runningQuiz.quiz.questions[runningQuiz.questionOn].answers[answerIndex]
-        .isCorrect;
-
-    const answerBody =
-      runningQuiz.quiz.questions[runningQuiz.questionOn].answers[answerIndex]
-        .body;
-
-    runningQuiz.quizers = runningQuiz.quizers.map((quizer) => {
-      if (quizer.userId == userId) {
-        return {
-          ...quizer,
-          answers: [
-            ...quizer.answers,
-            { answerIndex, isCorrect, body: answerBody },
-          ],
-          questionOn: quizer.questionOn + 1,
-          score: isCorrect ? quizer.score + 1 : quizer.score,
-        };
-      } else return quizer;
-    });
-
-    const currentQuizer = runningQuiz.quizers.filter(
-      (q) => q.userId === request.params.userId
-    )[0];
-    runningQuiz.quizers.forEach((client) => console.log(client));
-    // If all on the same question
-    if (
-      runningQuiz.quizers.filter((quizer) => {
-        console.log(quizer.questionOn);
-        return quizer.questionOn !== runningQuiz.quizers[0].questionOn;
-      }).length == 0
-    ) {
-      getQuizData(request.params.quizId)
-        .then((quiz, rej) => quiz)
-        .then((quiz, rej) => {
-          // If all on the same question and it's the last one
-          if (quiz.questions.length == runningQuiz.quizers[0].questionOn) {
-            // Questions finished - return done
-
-            runningQuiz.host.write(
-              `event: message\ndata:${JSON.stringify({
-                type: "end",
-                quiz,
-                // Add data of all the answers that were right/wrong
-                quizers: runningQuiz.quizers.map((q) => {
-                  return {
-                    name: q.name,
-                    userId: q.userId,
-                    answers: q.answers,
-                    score: q.score,
-                  };
-                }),
-              })}\n\n`
-            );
-
-            runningQuiz.quizers.forEach((client) => {
-              client.response.write(
-                `event: message\ndata:${JSON.stringify({
-                  type: "end",
-                  quiz,
-                  // Add data of all the answers that were right/wrong
-                  quizers: runningQuiz.quizers.map((q) => {
-                    return {
-                      name: q.name,
-                      userId: q.userId,
-                      answers: q.answers,
-                      score: q.score,
-                    };
-                  }),
-                })}\n\n`
-              );
-            });
-          } else {
-            // Still questions left? Send event to all quizers that it's time to move to the next question
-
-            runningQuiz.questionOn =
-              runningQuizes[request.params.quizId].quizers[0].questionOn;
-
-            runningQuiz.host.write(
-              `event: message\ndata:${JSON.stringify({
-                type: "nextQuestion",
-                answered: {
-                  name: currentQuizer.name,
-                  isCorrect:
-                    currentQuizer.answers[currentQuizer.questionOn - 1]
-                      .isCorrect,
-                },
-                question: quiz.questions[runningQuiz.quizers[0].questionOn],
-              })}\n\n`
-            );
-            runningQuiz.quizers.forEach((client) =>
-              client.response.write(
-                `event: message\ndata:${JSON.stringify({
-                  type: "nextQuestion",
-                  answered: {
-                    name: currentQuizer.name,
-                    isCorrect:
-                      currentQuizer.answers[currentQuizer.questionOn - 1]
-                        .isCorrect,
-                  },
-                  question:
-                    quiz.questions[
-                      runningQuizes[request.params.quizId].quizers[0].questionOn
-                    ],
-                })}\n\n`
-              )
-            );
-          }
-        });
-      response.end();
-    } else {
-      runningQuiz.host.write(
-        `event: message\ndata:${JSON.stringify({
-          type: "answer",
-          answered: {
-            name: currentQuizer.name,
-            isCorrect:
-              currentQuizer.answers[currentQuizer.questionOn - 1].isCorrect,
-          },
-        })}\n\n`
-      );
-      runningQuiz.quizers.forEach((client) =>
-        client.response.write(
-          `event: message\ndata:${JSON.stringify({
-            type: "answer",
-            answered: {
-              name: currentQuizer.name,
-              isCorrect:
-                currentQuizer.answers[currentQuizer.questionOn - 1].isCorrect,
-            },
-          })}\n\n`
-        )
-      );
-      response.end();
-    }
-  }
-);
+app.post("/answer-question/:quizId/:userId", answerQuestion);
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);

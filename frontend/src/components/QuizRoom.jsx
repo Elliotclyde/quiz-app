@@ -11,15 +11,17 @@ const sortByScore = (a, b) => {
   return 0;
 };
 
-export function WaitingRoom({ user, quiz }) {
+export function QuizRoom({ user, quiz }) {
   const [data, setData] = useState();
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [state, setState] = useState("waiting");
-  const [answered, setAnswered] = useState(null);
+  const [recentlyAnsweredQuizer, setRecentlyAnsweredQuizer] = useState(null);
+  const [hasAnsweredQuestion, setHasAnsweredQuestion] = useState(false);
 
   const quizers = data?.quizers || [];
 
   const isHost = quiz?.quizUser == user?.userId;
+
   useEffect(() => {
     if (user && quiz) {
       const evtSource = new EventSource(
@@ -29,37 +31,45 @@ export function WaitingRoom({ user, quiz }) {
           "/" +
           user.userId
       );
-      evtSource.addEventListener("message", function (event) {
-        const data = JSON.parse(event.data);
-        console.log(data.type);
-        switch (data.type) {
-          case "start":
-            setState("quizzing");
-            setCurrentQuestion(data.question);
-            break;
-          case "join":
-            setData(data);
-            break;
-          case "nextQuestion":
-            setCurrentQuestion(data.question);
-            setAnswered(data.answered);
-            break;
-          case "failure":
-            break;
-          case "answer":
-            console.log("ANswered!");
-            setAnswered(data.answered);
-            break;
-          case "end":
-            setData(data);
-            setState("end");
-            break;
-        }
-      });
+      evtSource.addEventListener("message", respondToEvent);
+
+      return () => {
+        evtSource.removeEventListener("message", respondToEvent);
+        evtSource.close();
+      };
     }
   }, [quiz, user]);
 
+  function respondToEvent(event) {
+    const data = JSON.parse(event.data);
+    console.log(data.type);
+    switch (data.type) {
+      case "start":
+        setState("quizzing");
+        setCurrentQuestion(data.question);
+        break;
+      case "join":
+        setData(data);
+        break;
+      case "nextQuestion":
+        setCurrentQuestion(data.question);
+        setRecentlyAnsweredQuizer(data.answered);
+        setHasAnsweredQuestion(false);
+        break;
+      case "failure":
+        break;
+      case "answer":
+        setRecentlyAnsweredQuizer(data.answered);
+        break;
+      case "end":
+        setData(data);
+        setState("end");
+        break;
+    }
+  }
+
   function onAnswerSelect(answerIndex) {
+    setHasAnsweredQuestion(true);
     fetch(
       import.meta.env.VITE_BACKEND_URL +
         "/answer-question/" +
@@ -104,6 +114,12 @@ export function WaitingRoom({ user, quiz }) {
                   <>
                     <h2>Waiting for quizers...</h2>
                     <p>You're hosting</p>
+                    <p>Send your friends this link to join:</p>
+                    <p>
+                      {import.meta.env.VITE_FRONTEND_URL +
+                        "/quiz/" +
+                        quiz?.quizId}
+                    </p>
                   </>
                 ) : (
                   <>
@@ -145,6 +161,7 @@ export function WaitingRoom({ user, quiz }) {
                 <h2>{currentQuestion.body}</h2>
                 {currentQuestion.answers.map((a, index) => (
                   <button
+                    disabled={hasAnsweredQuestion}
                     onClick={() => {
                       onAnswerSelect(index);
                     }}
@@ -152,10 +169,12 @@ export function WaitingRoom({ user, quiz }) {
                     {a.body}
                   </button>
                 ))}
-                {answered ? (
+                {recentlyAnsweredQuizer ? (
                   <p>
-                    {answered.name} just answered
-                    {answered.isCorrect ? " correctly" : " incorrectly"}
+                    {recentlyAnsweredQuizer.name} just answered
+                    {recentlyAnsweredQuizer.isCorrect
+                      ? " correctly"
+                      : " incorrectly"}
                   </p>
                 ) : null}
               </>
@@ -164,16 +183,10 @@ export function WaitingRoom({ user, quiz }) {
           case "end":
             return (function () {
               const winner = quizers.sort(sortByScore)[0];
+
               return (
                 <>
-                  {parseInt(winner.userId) === user.userId ? (
-                    <h2>You win!</h2>
-                  ) : (
-                    <h2>
-                      The winner is:
-                      {" " + winner.name}.
-                    </h2>
-                  )}
+                  <h2>{getWinnerMessage(quizers, user)}</h2>
                   <ResultsTable data={data} />
                 </>
               );
@@ -182,4 +195,22 @@ export function WaitingRoom({ user, quiz }) {
       })()}
     </div>
   );
+}
+
+function getWinnerMessage(quizers, user) {
+  const orderedByScore = quizers.sort(sortByScore);
+
+  const winners = orderedByScore.filter((quizer) => {
+    return quizer.score === orderedByScore[0].score;
+  });
+
+  if (winners.length == 1) {
+    if (orderedByScore[0].userId == user.userId) {
+      return "You win!";
+    } else {
+      return "The winner is: " + orderedByScore[0].name;
+    }
+  } else {
+    return "It was a draw between: " + winners.map((w) => w.name).join(", ");
+  }
 }

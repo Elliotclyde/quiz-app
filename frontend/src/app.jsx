@@ -26,7 +26,18 @@ function getInitialUser() {
 export function App(props) {
   const [user, setUser] = useState(getInitialUser());
 
-  const userValue = useMemo(() => ({ user, setUser }), [user]);
+  const userValue = useMemo(
+    () => ({
+      user,
+      setUser: (inputUser) => {
+        setUser(inputUser);
+        if (!inMemoryStorageForTesting) {
+          window.localStorage.setItem("user", JSON.stringify(inputUser));
+        }
+      },
+    }),
+    [user]
+  );
 
   return (
     <UserContext.Provider value={userValue}>

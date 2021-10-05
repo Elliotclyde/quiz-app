@@ -1,7 +1,7 @@
 import { NavBar } from "./NavBar";
 import { QuizHostList } from "./QuizHostList";
 import { useFetch } from "../hooks/useFetch";
-import { WaitingRoom } from "./WaitingRoom";
+import { QuizRoom } from "./QuizRoom";
 import { useEffect, useState, useContext } from "preact/hooks";
 import { NewUserModal } from "./NewUserModal";
 import { inMemoryStorageForTesting, UserContext } from "../app";
@@ -18,18 +18,17 @@ export function QuizPage({ quizId }) {
     quizId === "",
     [quizId]
   );
-
   const quizData = useFetch(
     import.meta.env.VITE_BACKEND_URL + "/get-quiz/" + quizId,
     quizId !== ""
   );
 
-  console.log(quizData);
   return (
     <>
       <NavBar />
-
+      {/* Either way we need the user so show the modal to sign up user */}
       {user == null ? <NewUserModal /> : ""}
+      {/* If there is no quiz */}
       {quizId === "" ? (
         listData ? (
           <div>
@@ -42,7 +41,7 @@ export function QuizPage({ quizId }) {
       ) : (
         <div>
           <h1>{quizData?.title}</h1>
-          <WaitingRoom quiz={quizData} user={user} />
+          <QuizRoom quiz={quizData} user={user} />
         </div>
       )}
     </>
