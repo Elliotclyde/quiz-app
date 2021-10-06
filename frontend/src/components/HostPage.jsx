@@ -10,17 +10,12 @@ import { inMemoryStorageForTesting, UserContext } from "../app";
 // Load the quiz data
 // Sign up for
 
-export function QuizPage({ quizRandomId }) {
-  const { user, setUser } = useContext(UserContext);
+export function HostPage() {
+  const { user } = useContext(UserContext);
 
   const listData = useFetch(
     import.meta.env.VITE_BACKEND_URL + "/get-quiz/",
-    quizRandomId === "",
-    [quizRandomId]
-  );
-  const quizData = useFetch(
-    import.meta.env.VITE_BACKEND_URL + "/get-quiz/" + quizRandomId,
-    quizRandomId !== ""
+    true
   );
 
   return (
@@ -29,10 +24,14 @@ export function QuizPage({ quizRandomId }) {
       {/* Either way we need the user so show the modal to sign up user */}
       {user == null ? <NewUserModal /> : ""}
       {/* If there is no quiz */}
-      <div>
-        <h1>{quizData?.title}</h1>
-        <QuizRoom quiz={quizData} user={user} />
-      </div>
+      {listData ? (
+        <div>
+          <h1>Quizes</h1>
+          <QuizHostList listData={listData} />
+        </div>
+      ) : (
+        <div>Loading quizes . . .</div>
+      )}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { Link } from "preact-router";
+import { Link, route } from "preact-router";
 import { useState, useContext } from "preact/hooks";
 import { UserContext } from "../app";
 import { NewUserModal } from "./NewUserModal";
@@ -38,8 +38,7 @@ export function NavBar() {
       .then((res, rej) => {
         console.log(res);
         setNeedsUser(false);
-        window.location.href =
-          import.meta.env.VITE_FRONTEND_URL + "/editor/" + res.quizId;
+        route("/editor/" + res.quizId);
       });
   }
 
@@ -56,7 +55,7 @@ export function NavBar() {
       <Link href="/">Home</Link>
       <button onClick={onCreateClick}>Create</button>
       <Link href="/editor">Edit</Link>
-      <Link href="/quiz">Quiz</Link>
+      <Link href="/host">Host</Link>
       {needsUser && !user ? <NewUserModal onAuthCallback={createQuiz} /> : null}
     </nav>
   );

@@ -6,6 +6,7 @@ import { getQuiz } from "./Controllers/getQuiz.js";
 import { updateQuiz } from "./Controllers/updateQuiz.js";
 import { deleteQuiz } from "./Controllers/deleteQuiz.js";
 
+import { hostQuiz } from "./Controllers/hostQuiz.js";
 import { joinQuiz } from "./Controllers/joinQuiz.js";
 import { startQuiz } from "./Controllers/startQuiz.js";
 import { answerQuestion } from "./Controllers/answerQuestion.js";
@@ -14,6 +15,7 @@ import { createUser } from "./Controllers/createUser.js";
 import { getUserQuizes } from "./Controllers/getUserQuizes.js";
 
 import { dataBase } from "./Database/db.js";
+
 //TODO:
 
 /*
@@ -29,6 +31,7 @@ Also the quizzing page needs to show something
 Also after you're finished editing it it 
 
 */
+
 dataBase.initialise();
 const app = express();
 app.use(express.json());
@@ -37,6 +40,7 @@ app.use(cors());
 const port = 4000;
 
 export let runningQuizes = {};
+export let activeUsers = {};
 
 const eventStreamCorsOptions = {
   origin: true,
@@ -57,10 +61,13 @@ app.post("/edit-quiz/:quizId", updateQuiz);
 app.post("/delete-quiz/:quizId", deleteQuiz);
 app.get("/get-quiz/:quizId?", getQuiz);
 
+// for when the host asks to host a quiz - should send back a unique id for the new Url
+app.post("/host-quiz/", hostQuiz);
+// for when the user first arrives
 app.get("/join-quiz/:quizId/:userId", cors(eventStreamCorsOptions), joinQuiz);
-
+// for when the host clicks start
 app.post("/start-quiz/:quizId", startQuiz);
-
+// for every event after
 app.post("/answer-question/:quizId/:userId", answerQuestion);
 
 app.listen(port, () => {

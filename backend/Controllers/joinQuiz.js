@@ -3,6 +3,19 @@ import { runningQuizes } from "../index.js";
 import { dataBase } from "../Database/db.js";
 import { getQuizData } from "../Database/getQuizData.js";
 
+import { nanoid } from "nanoid";
+
+//  This should
+
+//  1. Check whether they are a host (the quiz is theirs)
+//  2. If they are a host, check whether they're already hosting a quiz and disconnected, then rejoin that one
+//  3. Otherwise, create a new quiz instance, with a RANDOM ID (this is going to be the url) and add the host to activeUsers
+
+//  4. If they are not a host, check whether they're already in a quiz and disconnected, then rejoin that one
+//  5. Otherwise, add the quizer to the list of quizers, both in the quiz and in the list of activeUsers
+//  6. All the connections need to listen for when they are disconnected and keep a reference to the question they are on, and their answers so far
+//  7. This means when they re-join, the endpoint should find the user in activeUsers first.
+
 export async function joinQuiz(request, response, next) {
   const headers = {
     "Cache-Control": "no-cache",
@@ -102,3 +115,6 @@ export async function joinQuiz(request, response, next) {
       });
   }
 }
+
+function joinQuizHost() {}
+function joinQuizQuizer() {}
