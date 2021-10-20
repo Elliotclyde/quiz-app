@@ -1,5 +1,6 @@
 import express, { response } from "express";
 import cors from "cors";
+import dotenv from "dotenv";
 
 import { createQuiz } from "./Controllers/createQuiz.js";
 import { getQuiz } from "./Controllers/getQuiz.js";
@@ -18,12 +19,13 @@ import { dataBase } from "./Database/db.js";
 
 //TODO:
 
+dotenv.config();
 dataBase.initialise();
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const port = 4000;
+const port = process.env.PORT;
 
 export let currentRooms = {};
 //This lists so when a random rejoin comes in we can check if they're connected to a quiz (if the )
