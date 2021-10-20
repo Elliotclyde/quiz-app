@@ -3,4 +3,5 @@ node_modules/*
 backend/node_modules/*
 frontend/.env.production
 backend/db/quiz.db
+backend/.env
 plan.txt
