@@ -1,6 +1,10 @@
 import express, { response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 import { createQuiz } from "./Controllers/createQuiz.js";
 import { getQuiz } from "./Controllers/getQuiz.js";
@@ -22,6 +26,7 @@ import { dataBase } from "./Database/db.js";
 dotenv.config();
 dataBase.initialise();
 const app = express();
+
 app.use(express.json());
 app.use(cors());
 
@@ -36,10 +41,25 @@ const eventStreamCorsOptions = {
   credentials: true,
 };
 
-// Grab a complete quiz
+app.use(express.static("frontend"));
 
 app.get("/", (req, res) => {
-  res.json({ Hello: "world" });
+  res.sendFile(__dirname + "/frontend/index.html");
+});
+app.get("/editor", (req, res) => {
+  res.sendFile(__dirname + "/frontend/index.html");
+});
+app.get("/editor/*", (req, res) => {
+  res.sendFile(__dirname + "/frontend/index.html");
+});
+app.get("/quiz/*", (req, res) => {
+  res.sendFile(__dirname + "/frontend/index.html");
+});
+app.get("/host", (req, res) => {
+  res.sendFile(__dirname + "/frontend/index.html");
+});
+app.get("/host/*", (req, res) => {
+  res.sendFile(__dirname + "/frontend/index.html");
 });
 
 app.post("/create-user/", createUser);

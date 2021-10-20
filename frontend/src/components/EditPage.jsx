@@ -5,6 +5,8 @@ import { QuizEditList } from "./QuizEditList";
 import { UserContext } from "../app";
 import { NewUserModal } from "./NewUserModal";
 import { DeleteQuizModal } from "./DeleteQuizModal";
+
+import { route } from "preact-router";
 // Needs to
 // Load the quiz data
 // Sign up for
@@ -31,7 +33,7 @@ export function EditPage({ quizId }) {
         <h1>Quiz editor</h1>
         {quizId != "" ? (
           quizData != null ? (
-            <EditForm initialData={quizData} quizId={quizId} />
+            <EditForm initialData={quizData} user={user} quizId={quizId} />
           ) : (
             <p>Loading . . .</p>
           )
@@ -51,7 +53,7 @@ export function EditPage({ quizId }) {
   );
 }
 
-function EditForm({ initialData, quizId }) {
+function EditForm({ initialData, quizId, user }) {
   const [data, setData] = useState(initialData);
   const [deleteModalShowing, setDeleteModalShowing] = useState(false);
 
@@ -205,22 +207,30 @@ function EditForm({ initialData, quizId }) {
 
   function onSaveAndHost(event) {
     event.preventDefault();
-    console.log(JSON.stringify(data));
-    fetch(import.meta.env.VITE_BACKEND_URL + "/edit-quiz/" + quizId, {
+    fetch(import.meta.env.VITE_BACKEND_URL + "/host-quiz", {
+      body: JSON.stringify({
+        userId: user.userId,
+        quizId: parseInt(quizId),
+      }),
       headers: {
         "Content-Type": "application/json",
       },
       method: "POST",
-      mode: "cors",
-      body: JSON.stringify(data),
     })
-      .then((res, rej) => {
-        return res.json();
+      .then(function (response) {
+        if (!response.ok) {
+          throw Error(response.statusText);
+        }
+        // Read the response as json.
+        return response.json();
       })
-      .then((res, rej) => {
-        window.location.href =
-          import.meta.env.VITE_FRONTEND_URL + "/quiz/" + quizId;
-        return res.json();
+      .then(function (responseAsJson) {
+        console.log(responseAsJson);
+        route("/quiz/" + responseAsJson.roomId);
+      })
+      .catch(function (error) {
+        console.log(error);
+        console.log("Looks like there was a problem: \n", error);
       });
   }
 

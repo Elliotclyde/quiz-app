@@ -12,7 +12,9 @@ export const UserContext = createContext({ user: null, setUser: () => {} });
 // Quiz page
 // By
 
-export const inMemoryStorageForTesting = true;
+export const inMemoryStorageForTesting =
+  import.meta.env.VITE_IN_MEMORY_USER === "true";
+console.log(import.meta.env.VITE_IN_MEMORY_USER);
 window.inMemoryUser = null;
 
 function getInitialUser() {
@@ -24,16 +26,16 @@ function getInitialUser() {
 }
 
 export function App(props) {
-  const [user, setUser] = useState(getInitialUser());
+  const [user, updateUser] = useState(getInitialUser());
 
   const userValue = useMemo(
     () => ({
       user,
       setUser: (inputUser) => {
-        setUser(inputUser);
         if (!inMemoryStorageForTesting) {
           window.localStorage.setItem("user", JSON.stringify(inputUser));
         }
+        updateUser(inputUser);
       },
     }),
     [user]
