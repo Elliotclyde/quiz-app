@@ -1,6 +1,11 @@
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useContext, useRef } from "preact/hooks";
 import { ResultsTable } from "./ResultsTable";
 import { CopyButton } from "./CopyButton";
+import { UserContext } from "../app";
+import { NewUserModal } from "./NewUserModal";
+import { QuizersTable } from "./QuizersTable";
+
+// A lot to do here
 
 const sortByScore = (a, b) => {
   if (a.score > b.score) {
@@ -12,23 +17,37 @@ const sortByScore = (a, b) => {
   return 0;
 };
 
-export function QuizRoom({ user, quiz }) {
-  const [data, setData] = useState();
-  const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [state, setState] = useState("waiting");
-  const [recentlyAnsweredQuizer, setRecentlyAnsweredQuizer] = useState(null);
-  const [hasAnsweredQuestion, setHasAnsweredQuestion] = useState(false);
+let evtSource;
+
+export function QuizRoom({ roomId }) {
+  const { user } = useContext(UserContext);
+  const [data, setData] = useState(null);
+  const [state, setState] = useState("loading");
+  const stateRef = useRef("loading");
 
   const quizers = data?.quizers || [];
 
-  const isHost = quiz?.quizUser == user?.userId;
+  const isHost = data?.host === user?.userId;
+
+  const currentQuestion = data
+    ? data.quiz.questions[data.currentQuestionIndex]
+    : null;
+
+  const hasAnswered = data
+    ? data.quizers.filter((q) => q.userId == user?.userId)[0]?.hasAnswered
+    : null;
+
+  const allConnected = data
+    ? data.hostConnected &&
+      data.quizers.filter((q) => !q.connected).length === 0
+    : false;
 
   useEffect(() => {
-    if (user && quiz) {
-      const evtSource = new EventSource(
+    if (user) {
+      evtSource = new EventSource(
         import.meta.env.VITE_BACKEND_URL +
           "/join-quiz/" +
-          quiz.quizId +
+          roomId +
           "/" +
           user.userId
       );
@@ -39,62 +58,74 @@ export function QuizRoom({ user, quiz }) {
         evtSource.close();
       };
     }
-  }, [quiz, user]);
+  }, [user, roomId]);
 
   function respondToEvent(event) {
     const data = JSON.parse(event.data);
-    console.log(data.type);
     switch (data.type) {
+      case "host":
+        if (data.hasStarted) {
+          setState("quizzing");
+        } else {
+          setState("waiting");
+        }
+        setData(data);
+        break;
+
       case "start":
         setState("quizzing");
-        setCurrentQuestion(data.question);
+        setData(data);
         break;
+
       case "join":
+        if (data.hasStarted) {
+          setState("quizzing");
+        } else {
+          setState("waiting");
+        }
+        setData(data);
+        break;
+
+      case "disconnect":
         setData(data);
         break;
       case "nextQuestion":
-        setCurrentQuestion(data.question);
-        setRecentlyAnsweredQuizer(data.answered);
-        setHasAnsweredQuestion(false);
+        setData(data);
         break;
       case "failure":
         break;
       case "answer":
-        setRecentlyAnsweredQuizer(data.answered);
-        break;
-      case "end":
         setData(data);
-        setState("end");
+        if (data.currentQuestionIndex >= data.quiz.questions.length) {
+          setState("end");
+          evtSource.removeEventListener("message", respondToEvent);
+          evtSource.close();
+        }
         break;
     }
   }
 
   function onAnswerSelect(answerIndex) {
-    setHasAnsweredQuestion(true);
-    fetch(
-      import.meta.env.VITE_BACKEND_URL +
-        "/answer-question/" +
-        quiz.quizId +
-        "/" +
-        user.userId,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-        mode: "cors",
-        body: JSON.stringify({ user: user, answerIndex: answerIndex }),
-      }
-    );
-  }
-
-  function onQuizStart() {
-    fetch(import.meta.env.VITE_BACKEND_URL + "/start-quiz/" + quiz.quizId, {
+    fetch(import.meta.env.VITE_BACKEND_URL + "/answer/", {
       headers: {
         "Content-Type": "application/json",
       },
       method: "POST",
       mode: "cors",
+      body: JSON.stringify({ roomId, user, answerIndex }),
+    });
+  }
+
+  function onQuizStart() {
+    fetch(import.meta.env.VITE_BACKEND_URL + "/start-quiz", {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      mode: "cors",
+      body: JSON.stringify({
+        roomId,
+      }),
     })
       .then((res, rej) => {
         return res.json();
@@ -106,8 +137,12 @@ export function QuizRoom({ user, quiz }) {
 
   return (
     <div>
+      {/* Either way we need the user so show the modal to sign up user */}
+      {user == null ? <NewUserModal /> : ""}
       {(() => {
         switch (state) {
+          case "loading":
+            return " . . . ";
           case "waiting":
             return (
               <>
@@ -117,17 +152,13 @@ export function QuizRoom({ user, quiz }) {
                     <p>You're hosting</p>
                     <p>Send your friends this link to join:</p>
                     <CopyButton>
-                      {import.meta.env.VITE_FRONTEND_URL +
-                        "/quiz/" +
-                        quiz?.quizId}
+                      {import.meta.env.VITE_FRONTEND_URL + "/quiz/" + roomId}
                     </CopyButton>
                   </>
+                ) : data.hostConnected ? (
+                  <h2>Waiting for host to start the quiz</h2>
                 ) : (
-                  <>
-                    <h2>
-                      Waiting for host {data?.host?.name} to start the quiz
-                    </h2>
-                  </>
+                  <h2>Host disconnected. Waiting for them to reconnect.</h2>
                 )}
                 <div>
                   <h3>Current quizers:</h3>
@@ -136,17 +167,26 @@ export function QuizRoom({ user, quiz }) {
                     : quizers.map((quizer) => {
                         return quizer.userId == user.userId ? (
                           <p>You are ready to quiz</p>
-                        ) : (
+                        ) : quizer.connected ? (
                           <p>
                             {quizer.name.charAt(0).toUpperCase() +
                               quizer.name.slice(1)}{" "}
                             is ready to quiz
                           </p>
+                        ) : (
+                          <p>
+                            {quizer.name.charAt(0).toUpperCase() +
+                              quizer.name.slice(1)}{" "}
+                            has disconnected
+                          </p>
                         );
                       })}
                 </div>
-                {isHost && quiz ? (
-                  <button disabled={quizers.length == 0} onClick={onQuizStart}>
+                {isHost ? (
+                  <button
+                    disabled={data?.quizers.length == 0 || !allConnected}
+                    onClick={onQuizStart}
+                  >
                     Start quiz
                   </button>
                 ) : null}
@@ -155,29 +195,25 @@ export function QuizRoom({ user, quiz }) {
           case "quizzing":
             return isHost ? (
               <>
-                <h2>Quizers are on question {currentQuestion.questionId}</h2>
+                <h2>Quizers are on question {data.currentQuestionIndex + 1}</h2>
+                <QuizersTable data={data} />
               </>
             ) : (
               <>
-                <h2>{currentQuestion.body}</h2>
+                <h2>Question {data.currentQuestionIndex + 1}</h2>
+                <h3>{currentQuestion.body}</h3>
                 {currentQuestion.answers.map((a, index) => (
                   <button
-                    disabled={hasAnsweredQuestion}
+                    disabled={hasAnswered || !allConnected}
                     onClick={() => {
                       onAnswerSelect(index);
                     }}
                   >
                     {a.body}
                   </button>
+                  // Here we'll put a view of who is connected and who has answered right or wrong
                 ))}
-                {recentlyAnsweredQuizer ? (
-                  <p>
-                    {recentlyAnsweredQuizer.name} just answered
-                    {recentlyAnsweredQuizer.isCorrect
-                      ? " correctly"
-                      : " incorrectly"}
-                  </p>
-                ) : null}
+                <QuizersTable data={data} />
               </>
             );
           // Show some nicer data here

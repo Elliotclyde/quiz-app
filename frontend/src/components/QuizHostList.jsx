@@ -11,6 +11,35 @@ export function QuizHostList({ listData }) {
 
   const userQuizes = listData.filter((quiz) => quiz.quizUser === user?.userId);
 
+  function onQuizOpen(event) {
+    event.preventDefault();
+    fetch(import.meta.env.VITE_BACKEND_URL + "/host-quiz", {
+      body: JSON.stringify({
+        userId: user.userId,
+        quizId: parseInt(event.target.dataset.quizid),
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw Error(response.statusText);
+        }
+        // Read the response as json.
+        return response.json();
+      })
+      .then(function (responseAsJson) {
+        console.log(responseAsJson);
+        route("/quiz/" + responseAsJson.roomId);
+      })
+      .catch(function (error) {
+        console.log(error);
+        console.log("Looks like there was a problem: \n", error);
+      });
+  }
+
   return (
     <div>
       {userQuizes.map((quiz) => {
@@ -18,7 +47,14 @@ export function QuizHostList({ listData }) {
           <>
             <h2>{quiz.title}</h2>
             <p>
-              <a href={"./quiz/" + quiz.quizId}> Host this quiz</a>
+              <a
+                onClick={onQuizOpen}
+                data-quizid={quiz.quizId}
+                href={"./quiz/" + quiz.quizId}
+              >
+                {" "}
+                Host this quiz
+              </a>
             </p>
           </>
         );

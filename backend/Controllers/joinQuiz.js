@@ -1,9 +1,7 @@
-import { runningQuizes } from "../index.js";
+import { currentRooms } from "../index.js";
 
 import { dataBase } from "../Database/db.js";
 import { getQuizData } from "../Database/getQuizData.js";
-
-import { nanoid } from "nanoid";
 
 //  This should
 
@@ -17,104 +15,125 @@ import { nanoid } from "nanoid";
 //  7. This means when they re-join, the endpoint should find the user in activeUsers first.
 
 export async function joinQuiz(request, response, next) {
+  const { roomId } = request.params;
+  const userId = parseInt(request.params.userId);
+
+  if (!currentRooms[roomId]) {
+    return response.status(400).send({
+      message: "This room is not being hosted!",
+    });
+  }
+
   const headers = {
     "Cache-Control": "no-cache",
     "Content-Type": "text/event-stream",
     Connection: "keep-alive",
     "transfer-encoding": "chunked",
   };
+
   response.writeHead(200, headers);
 
-  if (
-    runningQuizes[request.params.quizId] &&
-    runningQuizes[request.params.quizId].quizers.filter(
-      (q) => q.userId === request.params.userId
-    ).length === 0
-  ) {
-    dataBase
-      .getUser(request.params.userId)
-      .then((res, rej) => {
-        return res;
-      })
-      .then((res, rej) => {
-        runningQuizes[request.params.quizId].quizers.push({
-          userId: request.params.userId,
-          name: res.name,
-          questionOn: 0,
-          response,
-          answers: [],
-          score: 0,
-        });
-        runningQuizes[request.params.quizId].quizers.forEach((client) =>
-          client.response.write(
+  // First - is this the host joining?
+
+  if (currentRooms[roomId].data.host === userId) {
+    console.log("host");
+
+    currentRooms[roomId].data.hostConnected = true;
+    currentRooms[roomId].connections.push(response);
+    response.write(
+      `event: message\ndata:${JSON.stringify({
+        type: "host",
+        ...currentRooms[roomId].data,
+      })}\n\n`
+    );
+
+    currentRooms[roomId].connections.forEach((connection) => {
+      connection.write(
+        `event: message\ndata:${JSON.stringify({
+          type: "host",
+          ...currentRooms[roomId].data,
+        })}\n\n`
+      );
+    });
+
+    request.on("close", function () {
+      if (currentRooms[roomId]) {
+        currentRooms[roomId].connections = currentRooms[
+          roomId
+        ].connections.filter((r) => r != request);
+        if (currentRooms[roomId].connections.length === 0) {
+          currentRooms[roomId] = null;
+        }
+        currentRooms[roomId].data.hostConnected = false;
+        currentRooms[roomId].connections.forEach((connection) => {
+          connection.write(
             `event: message\ndata:${JSON.stringify({
-              type: "join",
-              joineedUser: res,
-              host: {
-                name: runningQuizes[request.params.quizId].host.name,
-                userId: runningQuizes[request.params.quizId].host.userId,
-              },
-              quizers: runningQuizes[request.params.quizId].quizers.map((q) => {
-                return { name: q.name, userId: q.userId };
-              }),
+              type: "disconnect",
+              ...currentRooms[roomId].data,
             })}\n\n`
-          )
-        );
-        runningQuizes[request.params.quizId].host.write(
+          );
+        });
+        console.log("DISCONNECTED");
+      }
+    });
+  }
+  // Now is it a user joining?
+  else {
+    const userData = await dataBase.getUser(userId);
+
+    if (
+      currentRooms[roomId].data.quizers.filter((q) => q.userId == userId)
+        .length != 0
+    ) {
+      currentRooms[roomId].data.quizers.forEach((quizer) => {
+        if (quizer.userId == userId) {
+          quizer.connected = true;
+        }
+      });
+    } else {
+      currentRooms[roomId].data.quizers.push({
+        userId,
+        name: userData.name,
+        hasAnswered: false,
+        answers: [],
+        score: 0,
+        connected: true,
+      });
+    }
+    currentRooms[roomId].connections.push(response);
+
+    currentRooms[roomId].connections.forEach((connection) => {
+      connection.write(
+        `event: message\ndata:${JSON.stringify({
+          type: "join",
+          ...currentRooms[roomId].data,
+        })}\n\n`
+      );
+    });
+  }
+
+  request.on("close", function () {
+    if (currentRooms[roomId]) {
+      currentRooms[roomId].connections = currentRooms[
+        roomId
+      ].connections.filter((r) => r != request);
+      if (currentRooms[roomId].connections.length === 0) {
+        currentRooms[roomId] = null;
+      }
+      currentRooms[roomId].data.quizers.forEach((q) => {
+        if (q.userId == userId) {
+          q.connected = false;
+        }
+      });
+      currentRooms[roomId].connections.forEach((connection) => {
+        connection.write(
           `event: message\ndata:${JSON.stringify({
-            type: "join",
-            joineedUser: res,
-            host: {
-              name: runningQuizes[request.params.quizId].host.name,
-              userId: runningQuizes[request.params.quizId].host.userId,
-            },
-            quizers: runningQuizes[request.params.quizId].quizers.map((q) => {
-              return { name: q.name, userId: q.userId };
-            }),
+            type: "disconnect",
+            ...currentRooms[roomId].data,
           })}\n\n`
         );
       });
-  }
-
-  if (!runningQuizes[request.params.quizId]) {
-    //quiz is not already running
-
-    dataBase
-      .getUser(request.params.userId)
-      .then((res, rej) => res)
-      .then((res, rej) => {
-        const user = res;
-        getQuizData(request.params.quizId)
-          .then((res, rej) => res)
-          .then(async (res, rej) => {
-            if (res.quizUser != request.params.userId) {
-              // not your quiz
-              response.write(
-                `event: message\ndata:${JSON.stringify({
-                  type: "failure",
-                  reason: "Not hosted",
-                })}\n\n`
-              );
-            } else {
-              // start hosting quiz
-              let connected = true;
-              const host = response;
-              host.name = user.name;
-              host.userId = user.userId;
-              request.on("close", function (err) {
-                runningQuizes[request.params.quizId] = null;
-              });
-              runningQuizes[request.params.quizId] = {
-                host,
-                quiz: res,
-                quizers: [],
-                questionOn: -1,
-              };
-            }
-          });
-      });
-  }
+      console.log("DISCONNECTED");
+    }
+  });
 }
-
-function joinQuizHost() {}
-function joinQuizQuizer() {}

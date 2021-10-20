@@ -18,20 +18,6 @@ import { dataBase } from "./Database/db.js";
 
 //TODO:
 
-/*
-
-Instead of the way create/edit works, it should immediately create a blank quiz and then start to edit it. 
-
-At the bottom of the create/edit page it should show a "save" button which will just save it and a "save and host" button.
-
-This will take you to the quiz page.
-
-Also the quizzing page needs to show something
-
-Also after you're finished editing it it 
-
-*/
-
 dataBase.initialise();
 const app = express();
 app.use(express.json());
@@ -39,7 +25,8 @@ app.use(cors());
 
 const port = 4000;
 
-export let runningQuizes = {};
+export let currentRooms = {};
+//This lists so when a random rejoin comes in we can check if they're connected to a quiz (if the )
 export let activeUsers = {};
 
 const eventStreamCorsOptions = {
@@ -63,12 +50,13 @@ app.get("/get-quiz/:quizId?", getQuiz);
 
 // for when the host asks to host a quiz - should send back a unique id for the new Url
 app.post("/host-quiz/", hostQuiz);
-// for when the user first arrives
-app.get("/join-quiz/:quizId/:userId", cors(eventStreamCorsOptions), joinQuiz);
+// for when the user first arrives - opens up an event stream - which needs to be a get method so needs to pass
+// user id in URL
+app.get("/join-quiz/:roomId/:userId", cors(eventStreamCorsOptions), joinQuiz);
 // for when the host clicks start
-app.post("/start-quiz/:quizId", startQuiz);
-// for every event after
-app.post("/answer-question/:quizId/:userId", answerQuestion);
+app.post("/start-quiz/", startQuiz);
+// for each time the quizers answer a question after
+app.post("/answer/", answerQuestion);
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);

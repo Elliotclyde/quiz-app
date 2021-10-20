@@ -45,7 +45,7 @@ export function App(props) {
         <HomePage path="/" />
         <EditPage path="/editor/:quizId?" />
         <HostPage path="/host/:quizId?" />
-        <QuizPage path="/quiz/:quizRandomId?" />
+        <QuizPage path="/quiz/:roomId?" />
       </Router>
     </UserContext.Provider>
   );
