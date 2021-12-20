@@ -14,7 +14,6 @@ export function createUser(req, response) {
       return res;
     })
     .then((res, rej) => {
-      console.log(databaseUser);
       response.json(databaseUser);
       response.end();
     });

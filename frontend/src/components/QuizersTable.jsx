@@ -1,5 +1,4 @@
 export function QuizersTable({ data }) {
-  console.log(data.quizers[0]);
   return (
     <>
       <h2>Players</h2>

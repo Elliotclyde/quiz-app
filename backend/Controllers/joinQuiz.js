@@ -1,7 +1,6 @@
 import { currentRooms } from "../index.js";
 
 import { dataBase } from "../Database/db.js";
-import { getQuizData } from "../Database/getQuizData.js";
 
 //  This should
 
@@ -36,8 +35,6 @@ export async function joinQuiz(request, response, next) {
   // First - is this the host joining?
 
   if (currentRooms[roomId].data.host === userId) {
-    console.log("host");
-
     currentRooms[roomId].data.hostConnected = true;
     currentRooms[roomId].connections.push(response);
     response.write(
@@ -73,13 +70,16 @@ export async function joinQuiz(request, response, next) {
             })}\n\n`
           );
         });
-        console.log("DISCONNECTED");
       }
     });
   }
   // Now is it a user joining?
   else {
-    const userData = await dataBase.getUser(userId);
+    const userData = await dataBase.get({
+      table: "user",
+      column: "userid",
+      value: userId,
+    });
 
     if (
       currentRooms[roomId].data.quizers.filter((q) => q.userId == userId)
@@ -133,7 +133,6 @@ export async function joinQuiz(request, response, next) {
           })}\n\n`
         );
       });
-      console.log("DISCONNECTED");
     }
   });
 }

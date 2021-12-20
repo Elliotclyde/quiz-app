@@ -9,12 +9,6 @@ function getdb() {
 // -each question has a bunch of answers
 // -one of the answers is right
 
-// db.serialize(function () {
-//   db.each("SELECT rowid AS id, info FROM lorem", function (err, row) {
-//     console.log(row.id + ": " + row.info);
-//   });
-// });
-
 let quizIdHead = 0;
 let questionIdHead = 0;
 let answerIdHead = 0;
@@ -29,13 +23,13 @@ export const dataBase = {
       db.run(
         "CREATE TABLE quiz (quizid INTEGER PRIMARY KEY, title TEXT, quizuser INTEGER, FOREIGN KEY(quizuser) REFERENCES user(userid))"
       );
+      db.run(
+        "CREATE TABLE question (questionid INTEGER PRIMARY KEY, body TEXT, questionquiz INTEGER, FOREIGN KEY(questionquiz) REFERENCES quiz(quizid))"
+      );
+      db.run(
+        "CREATE TABLE answer (answerid INTEGER PRIMARY KEY, body TEXT, iscorrect INTEGER, answerquestion INTEGER, FOREIGN KEY(answerquestion) REFERENCES question(questionid))"
+      );
     });
-    db.run(
-      "CREATE TABLE question (questionid INTEGER PRIMARY KEY, body TEXT, questionquiz INTEGER, FOREIGN KEY(questionquiz) REFERENCES quiz(quizid))"
-    );
-    db.run(
-      "CREATE TABLE answer (answerid INTEGER PRIMARY KEY, body TEXT, iscorrect INTEGER, answerquestion INTEGER, FOREIGN KEY(answerquestion) REFERENCES question(questionid))"
-    );
     db.close();
   },
   initialise: function () {
@@ -147,11 +141,11 @@ export const dataBase = {
         [answerIdHead, body, isCorrect, questionId],
         (err, res) => {
           if (err) {
-            console.log(err);
+            reject(err);
           }
           db.get(sqlGet, [answerIdHead], (err, row) => {
             if (err) {
-              console.log(err);
+              reject(err);
             }
             answerIdHead = answerIdHead + 1;
             db.close();
@@ -161,28 +155,89 @@ export const dataBase = {
       );
     });
   },
-  getUser: function (id) {
+  // Gets all columns from a table where the column equals the value
+  get: function (params) {
+    const { table, column, value } = params; // In production these strings should be scrubbed to prevent SQL injection
     let db = getdb();
     return new Promise((resolve, reject) => {
-      db.get(`SELECT * FROM user WHERE userid  = ?`, [id], (err, row) => {
-        if (err) {
-          return console.error(err.messsage);
+      db.get(
+        `SELECT * FROM ${table} WHERE ${column} = ${value}`,
+        (err, row) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(camelCaseifyRow(row));
+          db.close();
         }
-        db.close();
-        resolve(camelCaseifyRow(row));
-      });
+      );
     });
   },
-  getQuiz: function (id) {
+  getAll: function (params) {
+    const { table, column, value } = params; // In production these strings should be scrubbed to prevent SQL injection
     let db = getdb();
     return new Promise((resolve, reject) => {
-      db.get(`SELECT * FROM quiz WHERE quizid  = ?`, [id], (err, row) => {
-        if (err) {
-          return console.error(err.messsage);
+      db.all(
+        `SELECT * FROM ${table} WHERE ${column} = ${value}`,
+        (err, rows) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(rows.map(camelCaseifyRow));
+          db.close();
         }
-        db.close();
-        resolve(camelCaseifyRow(row));
-      });
+      );
+    });
+  },
+  getQuizData: function (quizid) {
+    let db = getdb();
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT *,a.body AS answerbody, ques.body AS questionbody FROM answer a 
+  INNER JOIN question ques ON a.answerquestion=ques.questionid 
+  INNER JOIN quiz quiz ON ques.questionquiz = quiz.quizid 
+  WHERE quiz.quizid  = ?;`,
+        [quizid],
+        (err, row) => {
+          if (err) {
+            reject(err);
+          }
+          let result = {
+            quizId: row[0].quizid,
+            title: row[0].title,
+          };
+          let questions = [];
+          for (let i = 0; i < row.length; i++) {
+            let currentRow = row[i];
+            if (
+              questions.filter((q) => q.questionId == currentRow.questionid) ==
+              0
+            ) {
+              questions.push({
+                questionId: currentRow.questionid,
+                body: currentRow.questionbody,
+              });
+            }
+            questions.forEach((q) => {
+              if (q.answers === undefined) {
+                q.answers = [];
+              }
+              if (currentRow.answerquestion === q.questionId) {
+                q.answers.push({
+                  answerId: currentRow.answerid,
+                  body: currentRow.answerbody,
+                  isCorrect: currentRow.iscorrect,
+                  answerQuestion: currentRow.answerquestion,
+                });
+              }
+            });
+          }
+          result.questions = questions;
+          resolve(result);
+          db.close();
+        }
+      );
     });
   },
   getQuizes: function () {
@@ -190,84 +245,11 @@ export const dataBase = {
     return new Promise((resolve, reject) => {
       db.all(`SELECT * FROM quiz`, (err, rows) => {
         if (err) {
-          return console.error(err.messsage);
+          reject(err);
         }
         db.close();
         resolve(rows.map(camelCaseifyRow));
       });
-    });
-  },
-
-  getQuestion: function (id) {
-    let db = getdb();
-    return new Promise((resolve, reject) => {
-      db.get(
-        `SELECT * FROM question WHERE questionid  = ?`,
-        [id],
-        (err, row) => {
-          if (err) {
-            return console.error(err.messsage);
-          }
-          db.close();
-          resolve(camelCaseifyRow(row));
-        }
-      );
-    });
-  },
-  getAnswer: function (id) {
-    let db = getdb();
-    return new Promise((resolve, reject) => {
-      db.get(`SELECT * FROM answer WHERE answerid  = ?`, [id], (err, row) => {
-        if (err) {
-          return console.error(err.messsage);
-        }
-        db.close();
-        resolve(camelCaseifyRow(row));
-      });
-    });
-  },
-  getUserQuizes: function (id) {
-    let db = getdb();
-    return new Promise((resolve, reject) => {
-      db.all(`SELECT * FROM quiz WHERE quizuser = ?`, [id], (err, rows) => {
-        if (err) {
-          return console.error(err.messsage);
-        }
-        db.close();
-        resolve(rows.map(camelCaseifyRow));
-      });
-    });
-  },
-  getQuizQuestions: function (id) {
-    let db = getdb();
-    return new Promise((resolve, reject) => {
-      db.all(
-        `SELECT * FROM question WHERE questionquiz = ?`,
-        [id],
-        (err, rows) => {
-          if (err) {
-            return console.error(err.messsage);
-          }
-          db.close();
-          resolve(rows.map(camelCaseifyRow));
-        }
-      );
-    });
-  },
-  getQuestionAnswers: function (id) {
-    let db = getdb();
-    return new Promise((resolve, reject) => {
-      db.all(
-        `SELECT * FROM answer WHERE answerquestion = ?`,
-        [id],
-        (err, rows) => {
-          if (err) {
-            return console.error(err.messsage);
-          }
-          db.close();
-          resolve(rows.map(camelCaseifyRow));
-        }
-      );
     });
   },
   updateUser: function (id, props) {
@@ -275,17 +257,7 @@ export const dataBase = {
     const { name } = props;
     const sqlUpdate = "UPDATE user SET name = ? WHERE userid = ?";
     const sqlGet = "SELECT * FROM user WHERE userid = ?";
-    return new Promise((resolve, reject) => {
-      db.run(sqlUpdate, [name, id], (err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        db.get(sqlGet, [id], (req, res) => {
-          db.close();
-          resolve(camelCaseifyRow(res));
-        });
-      });
-    });
+    return new Promise((resolve, reject) => {});
   },
   updateQuiz: function (id, props) {
     let db = getdb();
@@ -295,7 +267,7 @@ export const dataBase = {
     return new Promise((resolve, reject) => {
       db.run(sqlUpdate, [title, id], (err, res) => {
         if (err) {
-          console.log(err);
+          reject(err);
         }
         db.get(sqlGet, [id], (req, res) => {
           db.close();
@@ -312,7 +284,7 @@ export const dataBase = {
     return new Promise((resolve, reject) => {
       db.run(sqlUpdate, [body, id], (err, res) => {
         if (err) {
-          console.log(err);
+          reject(err);
         }
         db.get(sqlGet, [id], (req, res) => {
           db.close();
@@ -331,7 +303,7 @@ export const dataBase = {
       db.run(sqlUpdate, [body, isCorrect, id], (req, res) => {
         db.get(sqlGet, [id], (err, res) => {
           if (err) {
-            console.log(err);
+            reject(err);
           }
           db.close();
           resolve(camelCaseifyRow(res));

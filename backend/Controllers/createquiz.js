@@ -12,8 +12,6 @@ export function createQuiz(req, response) {
     .newQuiz(data.title, data.user.userId)
     .then((res, rej) => {
       databaseQuiz = res;
-
-      console.log(res);
       return res;
     })
     .then((res, rej) => {

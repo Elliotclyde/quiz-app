@@ -36,7 +36,6 @@ export function NavBar() {
         } else return res.json();
       })
       .then((res, rej) => {
-        console.log(res);
         setNeedsUser(false);
         route("/editor/" + res.quizId);
       });

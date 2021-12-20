@@ -14,7 +14,6 @@ export const UserContext = createContext({ user: null, setUser: () => {} });
 
 export const inMemoryStorageForTesting =
   import.meta.env.VITE_IN_MEMORY_USER === "true";
-console.log(import.meta.env.VITE_IN_MEMORY_USER);
 window.inMemoryUser = null;
 
 function getInitialUser() {

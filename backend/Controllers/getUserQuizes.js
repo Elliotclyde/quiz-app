@@ -6,7 +6,7 @@ import { dataBase } from "../Database/db.js";
 
 export async function getUserQuizes(request, response) {
   dataBase
-    .getUserQuizes(request.params.userId)
+    .getAll({ table: "quiz", column: "quizuser", value: request.params.userId })
     .then((res, rej) => {
       return res;
     })

@@ -1,5 +1,4 @@
 import { currentRooms } from "../index.js";
-import { getQuizData } from "../Database/getQuizData.js";
 
 export function answerQuestion(request, response, next) {
   const { roomId, user, answerIndex } = request.body;

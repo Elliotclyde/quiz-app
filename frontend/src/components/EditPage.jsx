@@ -13,7 +13,6 @@ import { route } from "preact-router";
 
 export function EditPage({ quizId }) {
   const { user } = useContext(UserContext);
-  console.log(quizId);
 
   const quizData = useFetch(
     import.meta.env.VITE_BACKEND_URL + "/get-quiz/" + quizId,
@@ -57,13 +56,8 @@ function EditForm({ initialData, quizId, user }) {
   const [data, setData] = useState(initialData);
   const [deleteModalShowing, setDeleteModalShowing] = useState(false);
 
-  useEffect(() => {
-    console.log(data);
-  });
-
   function onSubmit(event) {
     event.preventDefault();
-    console.log(JSON.stringify(data));
     fetch(import.meta.env.VITE_BACKEND_URL + "/edit-quiz/" + quizId, {
       headers: {
         "Content-Type": "application/json",
@@ -225,12 +219,10 @@ function EditForm({ initialData, quizId, user }) {
         return response.json();
       })
       .then(function (responseAsJson) {
-        console.log(responseAsJson);
         route("/quiz/" + responseAsJson.roomId);
       })
       .catch(function (error) {
         console.log(error);
-        console.log("Looks like there was a problem: \n", error);
       });
   }
 
@@ -248,7 +240,6 @@ function EditForm({ initialData, quizId, user }) {
           return res.json();
         })
         .then((res, rej) => {
-          console.log("here");
           if (res.result === "deleted") {
             window.location.href =
               import.meta.env.VITE_FRONTEND_URL + "/editor";

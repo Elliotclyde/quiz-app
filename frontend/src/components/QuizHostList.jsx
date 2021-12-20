@@ -31,12 +31,10 @@ export function QuizHostList({ listData }) {
         return response.json();
       })
       .then(function (responseAsJson) {
-        console.log(responseAsJson);
         route("/quiz/" + responseAsJson.roomId);
       })
       .catch(function (error) {
         console.log(error);
-        console.log("Looks like there was a problem: \n", error);
       });
   }
 

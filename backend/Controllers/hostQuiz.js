@@ -1,15 +1,12 @@
 import { nanoid } from "nanoid";
 import { currentRooms } from "../index.js";
 import { dataBase } from "../Database/db.js";
-import { getQuizData } from "../Database/getQuizData.js";
 
 export async function hostQuiz(req, response) {
   const userId = parseInt(req.body.userId);
   const quizId = parseInt(req.body.quizId);
 
-  const quizData = await getQuizData(quizId);
-  const userData = await dataBase.getUser(userId);
-
+  const quizData = await dataBase.getQuizData(quizId);
   const roomId = nanoid();
 
   currentRooms[roomId] = {

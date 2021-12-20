@@ -1,5 +1,5 @@
 import { currentRooms } from "../index.js";
-import { getQuizData } from "../Database/getQuizData.js";
+
 export function startQuiz(request, response, next) {
   const roomId = request.body.roomId;
 
