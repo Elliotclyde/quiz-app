@@ -28,6 +28,7 @@ export function EditPage({ quizId }) {
   return (
     <>
       <NavBar />
+      {user === null ? <NewUserModal /> : ""}
       <div className="quiz-edit-wrapper">
         <h1>Quiz editor</h1>
         {quizId != "" ? (
@@ -38,7 +39,6 @@ export function EditPage({ quizId }) {
           )
         ) : (
           <>
-            {user == null ? <NewUserModal /> : ""}
             <h1>Select quiz to edit</h1>
             {userListdata != null ? (
               <QuizEditList listData={userListdata} />
@@ -55,7 +55,7 @@ export function EditPage({ quizId }) {
 function EditForm({ initialData, quizId, user }) {
   const [data, setData] = useState(initialData);
   const [deleteModalShowing, setDeleteModalShowing] = useState(false);
-
+  console.log(user);
   function onSubmit(event) {
     event.preventDefault();
     fetch(import.meta.env.VITE_BACKEND_URL + "/edit-quiz/" + quizId, {
