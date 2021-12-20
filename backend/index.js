@@ -40,28 +40,6 @@ const eventStreamCorsOptions = {
   origin: true,
   credentials: true,
 };
-
-app.use(express.static("frontend"));
-
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/frontend/index.html");
-});
-app.get("/editor", (req, res) => {
-  res.sendFile(__dirname + "/frontend/index.html");
-});
-app.get("/editor/*", (req, res) => {
-  res.sendFile(__dirname + "/frontend/index.html");
-});
-app.get("/quiz/*", (req, res) => {
-  res.sendFile(__dirname + "/frontend/index.html");
-});
-app.get("/host", (req, res) => {
-  res.sendFile(__dirname + "/frontend/index.html");
-});
-app.get("/host/*", (req, res) => {
-  res.sendFile(__dirname + "/frontend/index.html");
-});
-
 app.post("/create-user/", createUser);
 app.get("/get-user-quizes/:userId", getUserQuizes);
 

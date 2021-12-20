@@ -1,3 +1,4 @@
+import { Link, route } from "preact-router";
 export function QuizEditList({ listData }) {
   return (
     <div>
@@ -6,7 +7,7 @@ export function QuizEditList({ listData }) {
           <>
             <h2>{quiz.title}</h2>
             <p>
-              <a href={"./editor/" + quiz.quizId}> Edit this quiz</a>
+              <Link href={"/editor/" + quiz.quizId}>Edit this quiz</Link>
             </p>
           </>
         );

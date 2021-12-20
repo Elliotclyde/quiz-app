@@ -4,7 +4,7 @@ export async function deleteQuiz(request, response) {
   // As this will come back from the edit page we don't want to use any edited data
   // So instead grab the data as it currently exists in the db to delete
 
-  database.getQuizData(request.params.quizId).then(async (res, err) => {
+  dataBase.getQuizData(request.params.quizId).then(async (res, err) => {
     const answersToDelete = res.questions
       .map((q) => {
         return q.answers;

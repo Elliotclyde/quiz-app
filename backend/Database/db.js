@@ -44,7 +44,6 @@ export const dataBase = {
           } else {
             quizIdHead = quizRes.quizid + 1;
           }
-
           db.get(
             "SELECT questionid FROM question WHERE  questionid = (SELECT MAX(questionid) FROM question);",
             [],
@@ -81,9 +80,6 @@ export const dataBase = {
           );
         }
       );
-      const highestQuestionId = 1;
-      const highestAnswerId = 1;
-      const highestUserId = 1;
     });
   },
   newUser: function (name) {
