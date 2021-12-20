@@ -1,10 +1,6 @@
 import express, { response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 import { createQuiz } from "./Controllers/createQuiz.js";
 import { getQuiz } from "./Controllers/getQuiz.js";
@@ -21,8 +17,6 @@ import { getUserQuizes } from "./Controllers/getUserQuizes.js";
 
 import { dataBase } from "./Database/db.js";
 
-//TODO:
-
 dotenv.config();
 dataBase.initialise();
 const app = express();
@@ -33,7 +27,7 @@ app.use(cors());
 const port = process.env.PORT;
 
 export let currentRooms = {};
-//This lists so when a random rejoin comes in we can check if they're connected to a quiz (if the )
+//This lists so when a random rejoin comes in we can check if they're connected to a quiz
 export let activeUsers = {};
 
 const eventStreamCorsOptions = {

@@ -1,18 +1,30 @@
 import sqlite3 from "sqlite3";
 
+/*
+ * This file handles all the database connections
+ *
+ * SQLite does not recommend using an autoincrementing ID, so the logic to do this is in this file
+ *
+ */
+
 function getdb() {
-  return new sqlite3.Database("./db/quiz.db");
+  return new sqlite3.Database("./Database/quiz.db");
 }
-// -table of quizzes
 
-// -each one has a bunch of questions
-// -each question has a bunch of answers
-// -one of the answers is right
-
+/*
+ * Here the "heads" for the IDs to get incremented are here. Each time a new row in each table
+ * is added these manually get incremented
+ */
 let quizIdHead = 0;
 let questionIdHead = 0;
 let answerIdHead = 0;
 let userIdHead = 0;
+
+/*
+ * This object is the single export from this file
+ *
+ * It holds the logic for all adding, retrieving and deleting of information
+ */
 
 export const dataBase = {
   // create tables
